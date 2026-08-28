@@ -1,0 +1,22 @@
+# The repo-root .gitignore has a Python-oriented `lib/` rule that would
+# otherwise swallow this Flutter project's lib/ folder — un-ignore it here.
+!lib/
+!lib/**
+
+# Flutter/Dart build artifacts not covered by the root .gitignore
+.dart_tool/
+.flutter-plugins-dependencies
+.idea/
+*.iml
+ios/Pods/
+ios/Flutter/ephemeral/
+ios/.symlinks/
+macos/Flutter/ephemeral/
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+android/.gradle/
+android/.kotlin/
+android/app/debug
+android/app/profile
+android/app/release
+.DS_Store
