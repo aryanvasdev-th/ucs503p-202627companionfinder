@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'api_config.dart';
 import 'otp_verification_page.dart';
 import 'theme/app_theme.dart';
@@ -73,7 +75,7 @@ class _SignupPageState extends State<SignupPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/api/auth/register'),
+        Uri.parse('${ApiConfig.baseUrl}/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -103,7 +105,9 @@ class _SignupPageState extends State<SignupPage> {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Network error. Check your connection and try again.')),
+        const SnackBar(
+          content: Text('Network error. Check your connection and try again.'),
+        ),
       );
     }
   }
@@ -124,7 +128,13 @@ class _SignupPageState extends State<SignupPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create Account', style: theme.textTheme.titleLarge?.copyWith(color: extras.brandInk, fontSize: 19)),
+        title: Text(
+          'Create Account',
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: extras.brandInk,
+            fontSize: 19,
+          ),
+        ),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -139,7 +149,9 @@ class _SignupPageState extends State<SignupPage> {
                   Text(
                     'Join Companion',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall?.copyWith(fontSize: 24),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: 24,
+                    ),
                   ),
 
                   const SizedBox(height: 8),
@@ -147,7 +159,10 @@ class _SignupPageState extends State<SignupPage> {
                   Text(
                     'Sign up with your college email ($kAllowedEmailDomain)',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13.5, color: extras.text2),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13.5,
+                      color: extras.text2,
+                    ),
                   ),
 
                   const SizedBox(height: 30),
@@ -229,7 +244,10 @@ class _SignupPageState extends State<SignupPage> {
                           ? const SizedBox(
                               height: 22,
                               width: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
                             )
                           : const Text('Create Account'),
                     ),
@@ -248,7 +266,10 @@ class _SignupPageState extends State<SignupPage> {
                         children: [
                           TextSpan(
                             text: 'Log in',
-                            style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),

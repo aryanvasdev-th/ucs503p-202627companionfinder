@@ -8,6 +8,8 @@ class ThemeController {
   static final ValueNotifier<ThemeMode> mode = ValueNotifier(ThemeMode.system);
 
   static void toggle(Brightness currentBrightness) {
-    mode.value = currentBrightness == Brightness.dark ? ThemeMode.light : ThemeMode.dark;
+    mode.value = currentBrightness == Brightness.dark
+        ? ThemeMode.light
+        : ThemeMode.dark;
   }
 }

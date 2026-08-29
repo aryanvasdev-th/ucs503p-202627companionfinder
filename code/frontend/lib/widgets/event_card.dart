@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../api_config.dart';
 import '../models/activity.dart';
 import '../theme/app_theme.dart';
 
@@ -15,13 +17,27 @@ class EventCard extends StatelessWidget {
     final extras = context.extras;
     final isConfirmed = event.rsvp == EventRsvp.confirmed;
 
+    Widget gradientFallback() => Container(
+      height: 148,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: event.imageGradient,
+        ),
+      ),
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: theme.brightness == Brightness.dark ? 0.35 : 0.06),
+            color: Colors.black.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.35 : 0.06,
+            ),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -33,22 +49,24 @@ class EventCard extends StatelessWidget {
         children: [
           Stack(
             children: [
-              Container(
-                height: 148,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: event.imageGradient,
-                  ),
-                ),
-              ),
+              event.bannerUrl != null && event.bannerUrl!.isNotEmpty
+                  ? Image.network(
+                      '${ApiConfig.apiRoot}${event.bannerUrl}',
+                      height: 148,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          gradientFallback(),
+                    )
+                  : gradientFallback(),
               Positioned(
                 top: 12,
                 left: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(999),
@@ -56,9 +74,20 @@ class EventCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.access_time_rounded, size: 13, color: Colors.white),
+                      const Icon(
+                        Icons.access_time_rounded,
+                        size: 13,
+                        color: Colors.white,
+                      ),
                       const SizedBox(width: 5),
-                      Text(event.timeLabel, style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                      Text(
+                        event.timeLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -67,7 +96,10 @@ class EventCard extends StatelessWidget {
                 top: 12,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isConfirmed ? extras.greenTint : extras.brandTint,
                     borderRadius: BorderRadius.circular(999),
@@ -93,13 +125,23 @@ class EventCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(event.title, style: theme.textTheme.titleLarge?.copyWith(fontSize: 19)),
+                      child: Text(
+                        event.title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontSize: 19,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                        color: event.status == ActivityStatus.full ? extras.field : extras.indigoTint,
+                        color: event.status == ActivityStatus.full
+                            ? extras.field
+                            : extras.indigoTint,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -107,7 +149,9 @@ class EventCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: event.status == ActivityStatus.full ? extras.text3 : extras.indigo,
+                          color: event.status == ActivityStatus.full
+                              ? extras.text3
+                              : extras.indigo,
                         ),
                       ),
                     ),
@@ -121,16 +165,38 @@ class EventCard extends StatelessWidget {
                       backgroundColor: event.hostColor,
                       child: Text(
                         event.hostInitials,
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text('Hosted by ${event.hostName}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                      child: Text(
+                        'Hosted by ${event.hostName}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                        ),
+                      ),
                     ),
-                    Icon(Icons.star_rounded, size: 15, color: const Color(0xFFF0A93B)),
-                    const SizedBox(width: 3),
-                    Text(event.rating.toStringAsFixed(1), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 13)),
+                    if (event.rating != null) ...[
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 15,
+                        color: Color(0xFFF0A93B),
+                      ),
+                      const SizedBox(width: 3),
+                    ],
+                    Text(
+                      event.rating?.toStringAsFixed(1) ?? 'New',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -143,7 +209,10 @@ class EventCard extends StatelessWidget {
                       backgroundColor: extras.indigo,
                       foregroundColor: Colors.white,
                       shape: const StadiumBorder(),
-                      textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                      textStyle: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     child: const Text('View Details'),
                   ),

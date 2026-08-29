@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../pages/discover_page.dart';
 import '../home_page.dart';
 import '../pages/host_activity_page.dart';
 import '../pages/messages_page.dart';
 import '../pages/profile_page.dart';
+import '../services/notifications_state.dart';
 import '../theme/app_theme.dart';
 
 /// Owns the 5-tab bottom nav (Home / Discover / Host / Messages / Profile).
@@ -21,17 +23,22 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   late int _index = widget.initialIndex;
 
-  static const _tabs = [
-    HomePage(),
-    DiscoverPage(),
-    MessagesPage(),
-    ProfilePage(),
+  @override
+  void initState() {
+    super.initState();
+    NotificationsState.refresh();
+  }
+
+  List<Widget> get _tabs => [
+    const HomePage(),
+    DiscoverPage(isActive: _index == 1),
+    const MessagesPage(),
+    const ProfilePage(),
   ];
 
   void _openHost() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const HostActivityPage()),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const HostActivityPage()));
   }
 
   @override
@@ -53,7 +60,11 @@ class _BottomNav extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final VoidCallback onHostTap;
 
-  const _BottomNav({required this.index, required this.onSelect, required this.onHostTap});
+  const _BottomNav({
+    required this.index,
+    required this.onSelect,
+    required this.onHostTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -66,16 +77,38 @@ class _BottomNav extends StatelessWidget {
         border: Border(top: BorderSide(color: theme.dividerColor)),
       ),
       child: Padding(
-        padding: EdgeInsets.only(bottom: 16 + MediaQuery.of(context).padding.bottom * 0.4),
+        padding: EdgeInsets.only(
+          bottom: 16 + MediaQuery.of(context).padding.bottom * 0.4,
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _NavItem(icon: Icons.home_rounded, label: 'Home', selected: index == 0, onTap: () => onSelect(0)),
-            _NavItem(icon: Icons.explore_rounded, label: 'Discover', selected: index == 1, onTap: () => onSelect(1)),
+            _NavItem(
+              icon: Icons.home_rounded,
+              label: 'Home',
+              selected: index == 0,
+              onTap: () => onSelect(0),
+            ),
+            _NavItem(
+              icon: Icons.explore_rounded,
+              label: 'Discover',
+              selected: index == 1,
+              onTap: () => onSelect(1),
+            ),
             _HostButton(onTap: onHostTap),
-            _NavItem(icon: Icons.chat_bubble_rounded, label: 'Messages', selected: index == 2, onTap: () => onSelect(2)),
-            _NavItem(icon: Icons.person_rounded, label: 'Profile', selected: index == 3, onTap: () => onSelect(3)),
+            _NavItem(
+              icon: Icons.chat_bubble_rounded,
+              label: 'Messages',
+              selected: index == 2,
+              onTap: () => onSelect(2),
+            ),
+            _NavItem(
+              icon: Icons.person_rounded,
+              label: 'Profile',
+              selected: index == 3,
+              onTap: () => onSelect(3),
+            ),
           ],
         ),
       ),
@@ -89,7 +122,12 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -101,8 +139,12 @@ class _NavItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: selected ? const EdgeInsets.fromLTRB(16, 9, 16, 7) : const EdgeInsets.symmetric(horizontal: 4),
-        transform: selected ? (Matrix4.identity()..translateByDouble(0.0, -10.0, 0.0, 1.0)) : Matrix4.identity(),
+        padding: selected
+            ? const EdgeInsets.fromLTRB(16, 9, 16, 7)
+            : const EdgeInsets.symmetric(horizontal: 4),
+        transform: selected
+            ? (Matrix4.identity()..translateByDouble(0.0, -10.0, 0.0, 1.0))
+            : Matrix4.identity(),
         decoration: BoxDecoration(
           color: selected ? theme.colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(999),

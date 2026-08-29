@@ -153,9 +153,15 @@ class AppTheme {
           headlineLarge: headingFont.headlineLarge,
           headlineMedium: headingFont.headlineMedium,
           headlineSmall: headingFont.headlineSmall,
-          titleLarge: headingFont.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-          titleMedium: headingFont.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          titleSmall: headingFont.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          titleLarge: headingFont.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          titleMedium: headingFont.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          titleSmall: headingFont.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         )
         .apply(bodyColor: text, displayColor: text)
         .copyWith(

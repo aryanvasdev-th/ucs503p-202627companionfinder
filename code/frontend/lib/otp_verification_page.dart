@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'api_config.dart';
 import 'login_page.dart';
 import 'theme/app_theme.dart';
@@ -43,9 +45,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> verifyOtp() async {
@@ -131,7 +132,13 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Verify Email', style: theme.textTheme.titleLarge?.copyWith(color: extras.brandInk, fontSize: 19)),
+        title: Text(
+          'Verify Email',
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: extras.brandInk,
+            fontSize: 19,
+          ),
+        ),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -144,8 +151,15 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                 Container(
                   width: 76,
                   height: 76,
-                  decoration: BoxDecoration(color: extras.brandTint, borderRadius: BorderRadius.circular(24)),
-                  child: Icon(Icons.mark_email_read_outlined, size: 34, color: theme.colorScheme.primary),
+                  decoration: BoxDecoration(
+                    color: extras.brandTint,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(
+                    Icons.mark_email_read_outlined,
+                    size: 34,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
 
                 const SizedBox(height: 22),
@@ -161,7 +175,10 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                 Text(
                   'We sent a 6-digit code to\n${widget.email}',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13.5, color: extras.text2),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13.5,
+                    color: extras.text2,
+                  ),
                 ),
 
                 const SizedBox(height: 30),
@@ -181,11 +198,23 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                           margin: const EdgeInsets.symmetric(horizontal: 5),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: active ? theme.colorScheme.surface : extras.field,
+                            color: active
+                                ? theme.colorScheme.surface
+                                : extras.field,
                             borderRadius: BorderRadius.circular(14),
-                            border: active ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
+                            border: active
+                                ? Border.all(
+                                    color: theme.colorScheme.primary,
+                                    width: 2,
+                                  )
+                                : null,
                           ),
-                          child: Text(char, style: theme.textTheme.headlineSmall?.copyWith(fontSize: 22)),
+                          child: Text(
+                            char,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontSize: 22,
+                            ),
+                          ),
                         );
                       }),
                     ),
@@ -216,7 +245,10 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                         ? const SizedBox(
                             height: 22,
                             width: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Verify'),
                   ),
@@ -225,7 +257,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                 const SizedBox(height: 18),
 
                 TextButton(
-                  onPressed: (_resendCooldown > 0 || _isResending) ? null : resendOtp,
+                  onPressed: (_resendCooldown > 0 || _isResending)
+                      ? null
+                      : resendOtp,
                   child: Text(
                     _resendCooldown > 0
                         ? 'Resend code in ${_resendCooldown}s'

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+
+import '../services/notifications_state.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_controller.dart';
 
 /// Shared top bar: "Companion" wordmark on the left, theme toggle, bell, SOS.
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBellTap;
-  final VoidCallback? onSosTap;
 
-  const AppTopBar({super.key, this.onBellTap, this.onSosTap});
+  const AppTopBar({super.key, this.onBellTap});
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -40,12 +41,37 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               color: theme.colorScheme.onSurface,
             ),
-            IconButton(
-              onPressed: onBellTap,
-              icon: const Icon(Icons.notifications_outlined),
-              color: theme.colorScheme.onSurface,
+            ValueListenableBuilder<int>(
+              valueListenable: NotificationsState.unreadCount,
+              builder: (context, count, _) => Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    onPressed: onBellTap,
+                    icon: const Icon(Icons.notifications_outlined),
+                    color: theme.colorScheme.onSurface,
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.error,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: theme.colorScheme.surface,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            _SosPill(onTap: onSosTap),
+            const _SosPill(),
             const SizedBox(width: 2),
           ],
         ),
@@ -54,31 +80,37 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
+/// Disabled until the emergency-contact + Twilio SMS flow is wired up —
+/// styled as muted/inactive rather than the live brand color so it doesn't
+/// read as a working safety feature before it actually is one.
 class _SosPill extends StatelessWidget {
-  final VoidCallback? onTap;
-  const _SosPill({this.onTap});
+  const _SosPill();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final extras = context.extras;
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('SOS isn\'t set up yet — coming soon')),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary,
+          color: extras.field,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.shield_outlined, size: 13, color: Colors.white),
-            SizedBox(width: 4),
+          children: [
+            Icon(Icons.shield_outlined, size: 13, color: extras.text2),
+            const SizedBox(width: 4),
             Text(
               'SOS',
               style: TextStyle(
-                color: Colors.white,
+                color: extras.text2,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,

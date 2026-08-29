@@ -466,3 +466,7 @@ TSWLatexianTemp*
 # Uncomment the next line to have this generated file ignored.
 #*Notes.bib
  
+# Not Python's lib/ build output — code/frontend is a Flutter app whose
+# lib/ directory holds actual Dart source and must be tracked.
+!code/frontend/lib/
+!code/frontend/lib/**

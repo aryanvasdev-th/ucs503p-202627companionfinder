@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'theme/app_theme.dart';
 import 'widgets/main_scaffold.dart';
 
@@ -18,19 +19,28 @@ class LoginSuccessPage extends StatelessWidget {
             Container(
               width: 84,
               height: 84,
-              decoration: BoxDecoration(color: extras.greenTint, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: extras.greenTint,
+                shape: BoxShape.circle,
+              ),
               child: Icon(Icons.check_rounded, size: 44, color: extras.green),
             ),
 
             const SizedBox(height: 24),
 
-            Text('Login Successful!', style: theme.textTheme.headlineSmall?.copyWith(fontSize: 24)),
+            Text(
+              'Login Successful!',
+              style: theme.textTheme.headlineSmall?.copyWith(fontSize: 24),
+            ),
 
             const SizedBox(height: 10),
 
             Text(
               'Welcome to Companion',
-              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 15, color: extras.text2),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 15,
+                color: extras.text2,
+              ),
             ),
 
             const SizedBox(height: 36),

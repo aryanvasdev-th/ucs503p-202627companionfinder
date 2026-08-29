@@ -1,8 +1,11 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'api_config.dart';
 import 'login_success_page.dart';
+import 'services/auth_session.dart';
 import 'signup_page.dart';
 import 'otp_verification_page.dart';
 import 'theme/app_theme.dart';
@@ -29,9 +32,7 @@ class _LoginPageState extends State<LoginPage> {
     // Check whether the user entered both fields
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email and password'),
-        ),
+        const SnackBar(content: Text('Please enter your email and password')),
       );
 
       return;
@@ -63,17 +64,17 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isSubmitting = false);
 
       if (data['success'] == true) {
-        // TODO: store data['token'] securely, e.g. with flutter_secure_storage,
-        // so you can attach it to future authenticated requests.
+        AuthSession.token = data['token'] as String?;
+        AuthSession.userId = data['user']?['id']?.toString();
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const LoginSuccessPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const LoginSuccessPage()),
         );
       } else if (data['requiresVerification'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Please verify your email')),
+          SnackBar(
+            content: Text(data['message'] ?? 'Please verify your email'),
+          ),
         );
         Navigator.push(
           context,
@@ -90,7 +91,9 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Network error. Check your connection and try again.')),
+        const SnackBar(
+          content: Text('Network error. Check your connection and try again.'),
+        ),
       );
     }
   }
@@ -130,7 +133,11 @@ class _LoginPageState extends State<LoginPage> {
                         colors: [theme.colorScheme.primary, extras.brandInk],
                       ),
                     ),
-                    child: const Icon(Icons.people_alt_rounded, color: Colors.white, size: 30),
+                    child: const Icon(
+                      Icons.people_alt_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
                 ),
 
@@ -139,7 +146,10 @@ class _LoginPageState extends State<LoginPage> {
                 Text(
                   'Companion',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineSmall?.copyWith(color: extras.brandInk, fontSize: 26),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: extras.brandInk,
+                    fontSize: 26,
+                  ),
                 ),
 
                 const SizedBox(height: 6),
@@ -147,7 +157,10 @@ class _LoginPageState extends State<LoginPage> {
                 Text(
                   'Find your people. Do more together.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, color: extras.text2),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    color: extras.text2,
+                  ),
                 ),
 
                 const SizedBox(height: 40),
@@ -183,7 +196,10 @@ class _LoginPageState extends State<LoginPage> {
                         ? const SizedBox(
                             height: 22,
                             width: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Log In'),
                   ),
@@ -207,7 +223,10 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         TextSpan(
                           text: 'Sign up',
-                          style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
