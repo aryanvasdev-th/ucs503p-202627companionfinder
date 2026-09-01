@@ -1,5 +1,6 @@
 // usersController.js
 const pool = require('./db');
+const { convertHeicIfNeeded } = require('./imageService');
 
 async function getMe(req, res) {
   try {
@@ -53,8 +54,9 @@ async function uploadAvatar(req, res) {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No image file provided' });
   }
-  const avatarUrl = `/uploads/avatars/${req.file.filename}`;
   try {
+    const filename = await convertHeicIfNeeded(req.file.path);
+    const avatarUrl = `/uploads/avatars/${filename}`;
     await pool.query('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, req.userId]);
     return res.status(200).json({ success: true, avatarUrl });
   } catch (err) {

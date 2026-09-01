@@ -34,4 +34,24 @@ async function sendOtpEmail(toEmail, otp) {
   await transporter.sendMail(mailOptions);
 }
 
-module.exports = { sendOtpEmail };
+async function sendPasswordResetOtpEmail(toEmail, otp) {
+  const mailOptions = {
+    from: `"Campus Companion" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: 'Your Campus Companion password reset code',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+        <h2>Reset your password</h2>
+        <p>Use the code below to reset your Campus Companion password. It expires in 10 minutes.</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; margin: 20px 0;">
+          ${otp}
+        </div>
+        <p>If you didn't request this, you can safely ignore this email — your password won't change.</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
+module.exports = { sendOtpEmail, sendPasswordResetOtpEmail };

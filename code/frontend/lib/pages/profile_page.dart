@@ -11,6 +11,7 @@ import '../utils/avatar.dart';
 import '../widgets/app_top_bar.dart';
 import 'activity_history_page.dart';
 import 'edit_profile_page.dart';
+import 'emergency_contact_page.dart';
 import 'notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -116,6 +117,18 @@ class _ProfilePageState extends State<ProfilePage> {
                         final changed = await Navigator.of(context).push<bool>(
                           MaterialPageRoute(
                             builder: (_) => EditProfilePage(user: _user!),
+                          ),
+                        );
+                        if (changed == true) _load();
+                      },
+                    ),
+                    _MenuTile(
+                      icon: Icons.shield_outlined,
+                      label: 'Emergency Contact',
+                      onTap: () async {
+                        final changed = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute(
+                            builder: (_) => EmergencyContactPage(user: _user!),
                           ),
                         );
                         if (changed == true) _load();

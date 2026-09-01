@@ -1,6 +1,7 @@
 // activitiesController.js
 const pool = require('./db');
 const { createNotification } = require('./notificationsController');
+const { convertHeicIfNeeded } = require('./imageService');
 
 const ACTIVE_WINDOW_BEFORE_HOURS = 1;
 const ACTIVE_WINDOW_AFTER_HOURS = 3;
@@ -442,7 +443,8 @@ async function uploadActivityBanner(req, res) {
       return res.status(403).json({ success: false, message: 'Only the host can set the banner image' });
     }
 
-    const bannerUrl = `/uploads/activity-banners/${req.file.filename}`;
+    const filename = await convertHeicIfNeeded(req.file.path);
+    const bannerUrl = `/uploads/activity-banners/${filename}`;
     await pool.query('UPDATE activities SET banner_url = ? WHERE id = ?', [bannerUrl, activityId]);
     return res.status(200).json({ success: true, bannerUrl });
   } catch (err) {

@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../api_config.dart';
 import '../services/auth_session.dart';
 import '../theme/app_theme.dart';
+import '../utils/image_mime.dart';
 
 class HostActivityPage extends StatefulWidget {
   const HostActivityPage({super.key});
@@ -89,7 +90,11 @@ class _HostActivityPageState extends State<HostActivityPage> {
       );
       request.headers.addAll(AuthSession.authHeaders);
       request.files.add(
-        await http.MultipartFile.fromPath('banner', _bannerFile!.path),
+        await http.MultipartFile.fromPath(
+          'banner',
+          _bannerFile!.path,
+          contentType: mediaTypeForPath(_bannerFile!.path),
+        ),
       );
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);

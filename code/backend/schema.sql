@@ -31,6 +31,11 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 'purpose' distinguishes registration-verification OTPs from password-reset
+-- OTPs so a code issued for one flow can't be replayed to satisfy the other.
+ALTER TABLE otp_verifications
+  ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) NOT NULL DEFAULT 'verify_email';
+
 CREATE TABLE IF NOT EXISTS activities (
   id INT AUTO_INCREMENT PRIMARY KEY,
   host_user_id INT NOT NULL,

@@ -5,7 +5,7 @@ class ApiConfig {
   /// Your Mac's LAN IP — required for a physical phone on the same wifi
   /// (localhost on-device means the phone itself, not your Mac). Update this
   /// if your Mac's IP changes (check with `ipconfig getifaddr en0`).
-  static const String _lanHost = '192.168.31.18';
+  static const String _lanHost = '172.16.212.56';
 
   /// Picks the right host per platform automatically:
   /// - Web -> runs on your Mac, so localhost reaches it directly.

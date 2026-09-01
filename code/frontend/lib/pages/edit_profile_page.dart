@@ -7,8 +7,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../api_config.dart';
 import '../services/auth_session.dart';
-import '../theme/app_theme.dart';
 import '../utils/avatar.dart';
+import '../utils/image_mime.dart';
 
 class EditProfilePage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -22,8 +22,6 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _nameController;
   late final TextEditingController _bioController;
-  late final TextEditingController _contactNameController;
-  late final TextEditingController _contactPhoneController;
 
   String? _avatarUrl;
   String? _gender;
@@ -43,12 +41,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.initState();
     _nameController = TextEditingController(text: widget.user['name'] ?? '');
     _bioController = TextEditingController(text: widget.user['bio'] ?? '');
-    _contactNameController = TextEditingController(
-      text: widget.user['emergency_contact_name'] ?? '',
-    );
-    _contactPhoneController = TextEditingController(
-      text: widget.user['emergency_contact_phone'] ?? '',
-    );
     _avatarUrl = widget.user['avatar_url'];
     final gender = widget.user['gender'] as String?;
     _gender = _genderOptions.contains(gender) ? gender : null;
@@ -58,8 +50,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
-    _contactNameController.dispose();
-    _contactPhoneController.dispose();
     super.dispose();
   }
 
@@ -112,7 +102,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
       request.headers.addAll(AuthSession.authHeaders);
       request.files.add(
-        await http.MultipartFile.fromPath('avatar', picked.path),
+        await http.MultipartFile.fromPath(
+          'avatar',
+          picked.path,
+          contentType: mediaTypeForPath(picked.path),
+        ),
       );
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
@@ -144,7 +138,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      final profileResponse = await http.patch(
+      final response = await http.patch(
         Uri.parse('${ApiConfig.apiRoot}/api/users/me'),
         headers: {
           'Content-Type': 'application/json',
@@ -156,46 +150,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
           'gender': _gender ?? '',
         }),
       );
-      final profileData = jsonDecode(profileResponse.body);
-      if (profileData['success'] != true) {
-        if (!mounted) return;
-        setState(() => _isSaving = false);
-        _showMessage(profileData['message'] ?? 'Could not save profile');
-        return;
-      }
-
-      final contactName = _contactNameController.text.trim();
-      final contactPhone = _contactPhoneController.text.trim();
-      if (contactName.isNotEmpty || contactPhone.isNotEmpty) {
-        if (contactName.isEmpty || contactPhone.isEmpty) {
-          if (!mounted) return;
-          setState(() => _isSaving = false);
-          _showMessage(
-            'Enter both an emergency contact name and phone number.',
-          );
-          return;
-        }
-        final contactResponse = await http.patch(
-          Uri.parse('${ApiConfig.apiRoot}/api/users/me/emergency-contact'),
-          headers: {
-            'Content-Type': 'application/json',
-            ...AuthSession.authHeaders,
-          },
-          body: jsonEncode({'name': contactName, 'phone': contactPhone}),
-        );
-        final contactData = jsonDecode(contactResponse.body);
-        if (contactData['success'] != true) {
-          if (!mounted) return;
-          setState(() => _isSaving = false);
-          _showMessage(
-            contactData['message'] ?? 'Could not save emergency contact',
-          );
-          return;
-        }
-      }
-
+      final data = jsonDecode(response.body);
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      setState(() => _isSaving = false);
+      if (data['success'] == true) {
+        Navigator.of(context).pop(true);
+      } else {
+        _showMessage(data['message'] ?? 'Could not save profile');
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -206,7 +168,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final extras = context.extras;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Profile')),
@@ -288,40 +249,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                   .toList(),
               onChanged: (value) => setState(() => _gender = value),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Emergency Contact',
-              style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Used only if you trigger an SOS alert.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 12.5,
-                color: extras.text2,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              'Contact Name',
-              style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _contactNameController,
-              decoration: const InputDecoration(hintText: 'e.g. Mom, roommate...'),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Contact Phone',
-              style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _contactPhoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(hintText: '+91XXXXXXXXXX'),
             ),
             const SizedBox(height: 32),
             SizedBox(

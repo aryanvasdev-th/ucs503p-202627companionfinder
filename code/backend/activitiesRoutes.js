@@ -44,7 +44,7 @@ const bannerUpload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!EXT_BY_MIMETYPE[file.mimetype]) {
-      return cb(new Error('Only JPEG, PNG, or WEBP images are allowed'));
+      return cb(new Error('Only JPEG, PNG, WEBP, or HEIC images are allowed'));
     }
     cb(null, true);
   },

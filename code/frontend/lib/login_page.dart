@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
+import 'forgot_password_page.dart';
 import 'login_success_page.dart';
 import 'services/auth_session.dart';
 import 'signup_page.dart';
@@ -24,6 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool _isSubmitting = false;
+  bool _obscurePassword = true;
 
   Future<void> login() async {
     String email = emailController.text.trim();
@@ -179,14 +181,48 @@ class _LoginPageState extends State<LoginPage> {
 
                 TextField(
                   controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () {
+                        setState(() => _obscurePassword = !_obscurePassword);
+                      },
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 26),
+                const SizedBox(height: 10),
+
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordPage(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Forgot password?',
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
 
                 SizedBox(
                   height: 54,

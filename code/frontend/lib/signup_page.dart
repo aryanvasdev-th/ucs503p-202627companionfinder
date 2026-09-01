@@ -25,9 +25,17 @@ class _SignupPageState extends State<SignupPage> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
+  String? _gender;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isSubmitting = false;
+
+  static const _genderOptions = [
+    'Male',
+    'Female',
+    'Non-binary',
+    'Prefer not to say',
+  ];
 
   String? _validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -81,6 +89,7 @@ class _SignupPageState extends State<SignupPage> {
           'email': email,
           'password': passwordController.text,
           'name': nameController.text.trim(),
+          'gender': _gender,
         }),
       );
 
@@ -175,6 +184,22 @@ class _SignupPageState extends State<SignupPage> {
                       prefixIcon: Icon(Icons.person_outline),
                     ),
                     validator: _validateName,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  DropdownButtonFormField<String>(
+                    initialValue: _gender,
+                    decoration: const InputDecoration(
+                      labelText: 'Gender',
+                      prefixIcon: Icon(Icons.wc_outlined),
+                    ),
+                    items: _genderOptions
+                        .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                        .toList(),
+                    onChanged: (value) => setState(() => _gender = value),
+                    validator: (value) =>
+                        value == null ? 'Please select your gender' : null,
                   ),
 
                   const SizedBox(height: 14),
