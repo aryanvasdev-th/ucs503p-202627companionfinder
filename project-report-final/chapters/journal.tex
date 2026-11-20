@@ -3,11 +3,36 @@
 \chapter{Project Journal}
 \label{ch:journal}
 
-This chapter records each member's contributions in date order, with the errors met along
-the way and how they were fixed. The work was divided by area: Aryan Vasdev built the
-server and most of the application features, Ishaan Sharma set up the Flutter app and
-designed its screens, Saumya Singh wrote the proposal and feasibility study and drew the UML
-models, and Shraney Sharma was responsible for testing.
+This chapter records the team's work in date order, with the errors met along the way and
+how they were fixed. All four members worked on the application itself, across every part
+of it. Each member also led one area, shown in Table~\ref{tab:roles}.
+
+The code was written together but committed from Aryan Vasdev's laptop, which also ran the
+server and the database. That is why almost every commit in the repository carries his name;
+the commit author shows whose machine the work was saved from, not who did it. The
+development log in Section~\ref{sec:devlog} is therefore credited to the team. The sections
+after it record what each member led.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|L{3.2cm}|L{4.0cm}|L{4.3cm}|}
+\hline
+\textbf{Member} & \textbf{Led} & \textbf{Also worked on} \\
+\hline
+Aryan Vasdev & Server, database and bringing the parts together & All four parts of the app \\
+\hline
+Ishaan Sharma & Starter app, sign-in screens, theme and navigation & All four parts of the app \\
+\hline
+Saumya Singh & Proposal, feasibility study and UML models & All four parts of the app \\
+\hline
+Shraney Sharma & Testing & All four parts of the app \\
+\hline
+\end{tabular}
+\caption{Who led what. The four parts of the app are accounts and ID checking; hosting,
+joining and events; chat, notifications and reviews; and moderation and running the app on
+phones.}
+\label{tab:roles}
+\end{table}
 
 Entries taken from version control carry the date and time of the commit, from the team's
 local repository or from the course repository on GitHub. Work that never went through a
@@ -24,7 +49,10 @@ delivered for.
 \hline}
 
 % ------------------------------------------------------------------
-\section{Aryan Vasdev (1024030549)}
+\section{Team Development Log}
+\label{sec:devlog}
+
+The whole team worked on the entries below. Dates and times are those of the commits.
 
 \begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
 \jhead
@@ -115,7 +143,7 @@ monthly allowance. \\
 20 Nov, 06:13 & Made \texttt{schema.sql} work on a fresh database. &
 Setting up the test database showed the script had never run on a clean MySQL install. \\
 \hline
-20 Nov, 06:16--06:35 & Committed the server test suite and the final report's figures. &
+20 Nov, 06:16--06:35 & Server test suite and the final report's figures. &
 Two tests were fixed after they were found to pass without testing what they claimed
 (Chapter~\ref{ch:testing}). \\
 \hline
@@ -123,38 +151,60 @@ Two tests were fixed after they were found to pass without testing what they cla
 
 % ------------------------------------------------------------------
 \clearpage
+\section{Aryan Vasdev (1024030549)}
+
+\begin{center}
+\begin{tabular}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\jhead
+Aug--Nov & Led the server and database: the Express routes and controllers,
+the MySQL schema and its transactions, and the Socket.IO layer. &
+--- \\
+\hline
+Aug--Nov & Brought the team's work together on one machine: kept the local
+repository, ran the server and database for testing and demos, and pushed to the course
+repository. &
+--- \\
+\hline
+18 Sep and 20 Nov & Assembled the mid-semester and final reports in LaTeX from the team's
+sections. &
+--- \\
+\hline
+\end{tabular}
+\end{center}
+
+% ------------------------------------------------------------------
 \section{Ishaan Sharma (1024030553)}
 
-\begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\begin{center}
+\begin{tabular}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
 \jhead
-\endfirsthead
-\jhead
-\endhead
-\hline
-\endfoot
 21 Aug (course repo) & Created the starter Flutter application for the team and opened the
 first pull request to the course repository; removed the stale code the template had left. &
 --- \\
 \hline
-Before mid-semester & Screen design for the first version of the app. &
+Before mid-semester & Designed and built the login, sign-up and one-time code screens,
+with the red Companion branding on them and the check that only an \texttt{@thapar.edu}
+address can be entered. &
 --- \\
 \hline
-Before the final evaluation & Screen design for the features added in November. &
+Before mid-semester & Set up the app's look: the Material~3 theme in light and dark,
+its colours and fonts, and the five-item bottom bar (Home, Discover, Host, Messages,
+Profile) that every screen sits in. &
 --- \\
 \hline
-\end{longtable}
+Aug--Nov & Worked with the team on all four parts of the app in the log above
+(Table~\ref{tab:roles}). &
+--- \\
+\hline
+\end{tabular}
+\end{center}
 
 % ------------------------------------------------------------------
-\memberbreak
 \section{Saumya Singh (1024030554)}
 
-\begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\begin{center}
+\begin{tabular}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
 \jhead
-\endfirsthead
-\jhead
-\endhead
-\hline
-\endfoot
 Before implementation & Wrote the project proposal and the feasibility study in
 Chapter~2, covering the technical, managerial, economic, financial, cultural, social, safety
 and political dimensions, and the go decision. &
@@ -170,19 +220,19 @@ diagrams, and updated the use case and domain class diagrams for ID checks, even
 teams, reviews and the admin role. &
 --- \\
 \hline
-\end{longtable}
+Aug--Nov & Worked with the team on all four parts of the app in the log above
+(Table~\ref{tab:roles}). &
+--- \\
+\hline
+\end{tabular}
+\end{center}
 
 % ------------------------------------------------------------------
-\memberbreak
 \section{Shraney Sharma (1024030551)}
 
-\begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\begin{center}
+\begin{tabular}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
 \jhead
-\endfirsthead
-\jhead
-\endhead
-\hline
-\endfoot
 Before mid-semester & Walked every feature end to end against the real database, on an iOS
 device and an Android emulator: sign-up, wrong and expired codes, the resend cooldown,
 password reset, hosting, requesting, accepting and declining, full activities, chat across two
@@ -198,4 +248,9 @@ the levels of testing, the 29 server cases and the system test walk-through with
 screenshots. &
 --- \\
 \hline
-\end{longtable}
+Aug--Nov & Worked with the team on all four parts of the app in the log above
+(Table~\ref{tab:roles}). &
+--- \\
+\hline
+\end{tabular}
+\end{center}
