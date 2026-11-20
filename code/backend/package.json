@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test --test-reporter=spec test/*.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -20,7 +21,10 @@
     "multer": "^2.3.0",
     "mysql2": "^3.23.4",
     "nodemailer": "^9.0.5",
+    "sharp": "^0.35.5",
     "socket.io": "^4.8.1",
-    "twilio": "^5.4.0"
+    "tesseract.js": "^7.0.0",
+    "twilio": "^5.4.0",
+    "zxing-wasm": "^3.1.7"
   }
 }

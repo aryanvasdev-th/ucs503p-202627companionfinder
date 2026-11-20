@@ -1,0 +1,56 @@
+@startuml sequence_join
+!include skin.iuml
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam BoxPadding 8
+
+actor "Guest" as G
+participant "Guest's app" as GA
+actor "Host" as H
+participant "Host's app" as HA
+box "Application server" #FAFAF8
+  participant "activitiesController" as AC
+  participant "notifications\n(createNotification)" as NC
+  participant "socket.js" as SK
+end box
+database "MySQL" as DB
+
+G -> GA : tap "Request to join"
+GA -> AC : POST /api/activities/:id/request-join
+activate AC
+AC -> DB : host? already in? full?\npreviously declined?
+DB --> AC : all clear
+AC -> DB : INSERT join request (pending)
+AC -> NC : join_request for host
+NC -> DB : INSERT notification
+NC -> SK : emitToUser(host, notification:new)
+SK --> HA : notification:new
+HA -> H : popup "Kabir wants to join"
+AC --> GA : 200 requested
+deactivate AC
+
+H -> HA : tap Accept
+HA -> AC : POST .../requests/:rid/accept
+activate AC
+AC -> DB : BEGIN
+AC -> DB : SELECT activity, request FOR UPDATE
+AC -> DB : count participants < max_people?
+alt place left
+  AC -> DB : INSERT participant
+  AC -> DB : INSERT conversation member
+  AC -> DB : UPDATE request = accepted, responded_at
+  AC -> DB : COMMIT
+  AC -> NC : request_accepted for guest
+  NC -> SK : emitToUser(guest, notification:new)
+  SK --> GA : notification:new
+  AC --> HA : 200 accepted
+else activity filled meanwhile
+  AC -> DB : ROLLBACK
+  AC --> HA : 409 Activity is full
+end
+deactivate AC
+
+GA -> SK : conversation:join(conversationId)
+SK -> DB : isParticipant?
+SK --> GA : ack success
+@enduml

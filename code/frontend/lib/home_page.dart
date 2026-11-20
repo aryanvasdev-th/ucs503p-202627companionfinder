@@ -6,13 +6,14 @@ import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'models/activity.dart';
 import 'pages/activity_detail_page.dart';
-import 'pages/host_activity_page.dart';
 import 'pages/notifications_page.dart';
 import 'services/auth_session.dart';
 import 'theme/app_theme.dart';
 import 'utils/avatar.dart';
 import 'widgets/app_top_bar.dart';
 import 'widgets/event_card.dart';
+import 'widgets/host_choice_sheet.dart';
+import 'utils/when_format.dart';
 
 /// Home tab: your upcoming activities, plus a way to host your own.
 /// Discover (not this page) is the default landing tab for finding activities.
@@ -73,7 +74,7 @@ class _HomePageState extends State<HomePage> {
     return UpcomingEvent(
       id: a['id'],
       title: a['title'],
-      timeLabel: _formatWhen(startsAt),
+      timeLabel: formatWhen(startsAt, activityWindow(a).$2),
       rsvp: isHost ? EventRsvp.confirmed : EventRsvp.going,
       hostName: a['hostName'] ?? 'Unknown',
       hostInitials: initialsFor(a['hostName'] ?? '?'),
@@ -83,28 +84,8 @@ class _HomePageState extends State<HomePage> {
       peopleCapacity: a['maxPeople'],
       imageGradient: gradientForSeed(a['id']),
       bannerUrl: a['bannerUrl'],
+      isEvent: a['isEvent'] == true,
     );
-  }
-
-  String _formatWhen(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, $hour:$minute $period';
   }
 
   void _openDetail(int activityId) {
@@ -124,9 +105,8 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppTopBar(
-        onBellTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const NotificationsPage()),
-        ),
+        onBellTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const NotificationsPage())),
       ),
       body: SafeArea(
         top: false,
@@ -137,9 +117,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               _HostCard(
                 onTap: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const HostActivityPage()),
-                  );
+                  await showHostChoice(context);
                   _load();
                 },
               ),

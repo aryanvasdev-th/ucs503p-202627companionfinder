@@ -1,0 +1,191 @@
+@startuml class_domain
+!include skin.iuml
+hide circle
+skinparam nodesep 28
+skinparam ranksep 50
+
+class User {
+  +id : int <<PK>>
+  +email : varchar <<unique>>
+  +passwordHash : varchar
+  +name : varchar
+  +gender : varchar
+  +isVerified : bool
+  +bio : text
+  +avatarUrl : varchar
+  +emergencyContactName : varchar
+  +emergencyContactPhone : varchar
+  +idVerificationStatus : IdStatus
+  +idVerifiedAt : timestamp
+  +idRollHash : char(64) <<unique>>
+  +isBanned : bool
+  +banReason : varchar
+  +createdAt : timestamp
+}
+
+class OtpVerification {
+  +id : int <<PK>>
+  +email : varchar
+  +otpCode : char(6)
+  +purpose : OtpPurpose
+  +expiresAt : datetime
+  +createdAt : timestamp
+}
+
+class Activity {
+  +id : int <<PK>>
+  +hostUserId : int <<FK>>
+  +title : varchar
+  +category : varchar
+  +description : text
+  +landmark : varchar
+  +startsAt : datetime
+  +durationMinutes : int <<nullable>>
+  +maxPeople : int
+  +bannerUrl : varchar
+  +isTeamEvent : bool
+  +isFeatured : bool
+  +createdAt : timestamp
+  --
+  /endsAt = startsAt + durationMinutes
+}
+
+class JoinRequest {
+  +id : int <<PK>>
+  +status : RequestStatus
+  +createdAt : timestamp
+  +respondedAt : timestamp
+  --
+  <<unique>> (activityId, userId)
+}
+
+class Participation {
+  +joinedAt : timestamp
+  --
+  <<unique>> (activityId, userId)
+}
+
+class Conversation {
+  +id : int <<PK>>
+  +activityId : int <<nullable>>
+  +createdAt : timestamp
+}
+
+class Message {
+  +id : int <<PK>>
+  +body : text
+  +createdAt : timestamp
+}
+
+class Rating {
+  +id : int <<PK>>
+  +score : decimal(2,1)
+  +reviewText : text
+  +tags : ReviewTag[*]
+  +createdAt : timestamp
+  --
+  <<unique>> (activityId, rater, rated)
+}
+
+class Notification {
+  +id : int <<PK>>
+  +type : NotificationType
+  +title : varchar
+  +body : text
+  +readAt : timestamp <<nullable>>
+  +createdAt : timestamp
+}
+
+class SosAlert {
+  +id : int <<PK>>
+  +latitude : decimal(10,7)
+  +longitude : decimal(10,7)
+  +notifiedContactPhone : varchar
+  +triggeredAt : timestamp
+}
+
+class EventActivity <<activity_teams>> {
+  +id : int <<PK>>
+  +name : varchar(60)
+  +maxMembers : int
+  +startsAt : datetime <<nullable>>
+  +teamSize : int <<nullable>>
+}
+
+class EventSignup <<activity_team_members>> {
+  +joinedAt : timestamp
+  --
+  <<PK>> (eventActivityId, userId)
+}
+
+class Team <<activity_squads>> {
+  +id : int <<PK>>
+  +name : varchar(60)
+}
+
+enum IdStatus {
+  none
+  verified
+  failed
+}
+
+enum RequestStatus {
+  pending
+  accepted
+  declined
+}
+enum OtpPurpose {
+  verify_email
+  reset_password
+}
+enum NotificationType {
+  join_request
+  request_accepted
+  request_declined
+  activity_cancelled
+  rating_received
+  team_joined
+  event_activity_joined
+  event_activity_removed
+  id_verified
+  ...
+}
+
+User "1" --> "0..*" Activity : hosts
+User "1" --> "0..*" JoinRequest : raises
+Activity "1" *-- "0..*" JoinRequest
+User "1" --> "1..*" Participation : takes part in
+Activity "1" *-- "1..*" Participation
+Activity "1" o-- "0..1" Conversation : group chat
+Conversation "1" *-- "0..*" Message
+User "1" --> "0..*" Message : sends
+Conversation "1" -- "2..*" User : participants
+Activity "1" *-- "0..*" Rating
+User "1" --> "0..*" Rating : rater / rated
+User "1" *-- "0..*" Notification
+User "1" *-- "0..*" SosAlert
+SosAlert "0..*" --> "0..1" Activity : taken from the\nactive window
+Activity "1" *-- "0..*" EventActivity : event holds
+EventActivity "1" *-- "0..*" EventSignup
+User "1" --> "0..*" EventSignup : signs up
+EventActivity "1" *-- "0..*" Team : when teamSize set
+Team "0..1" <-- "0..*" EventSignup : plays in
+User ..> IdStatus
+JoinRequest ..> RequestStatus
+OtpVerification ..> OtpPurpose
+Notification ..> NotificationType
+
+note right of Conversation
+  activityId NULL marks a direct
+  message; a non-null value marks
+  an activity group chat, so one
+  table serves both kinds.
+end note
+
+note bottom of OtpVerification
+  Keyed on e-mail rather than user id:
+  a reset code must be issuable before
+  the session exists.
+end note
+
+@enduml

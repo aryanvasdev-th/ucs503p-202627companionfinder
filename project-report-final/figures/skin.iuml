@@ -1,0 +1,58 @@
+' Shared look for every Campus Companion diagram.
+' Neutral greys and one accent so the figures stay readable in a
+' black-and-white print of the report.
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam ArrowColor #3B3B3B
+skinparam ArrowFontSize 11
+skinparam ArrowFontColor #3B3B3B
+
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #2F2F2F
+  FontSize 12
+}
+skinparam usecase {
+  BackgroundColor #F6F6F4
+  BorderColor #4A4A4A
+  FontSize 12
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #6E6E6E
+  FontStyle bold
+}
+skinparam package {
+  BackgroundColor #FCFCFB
+  BorderColor #6E6E6E
+  FontStyle bold
+}
+skinparam class {
+  BackgroundColor #F6F6F4
+  BorderColor #4A4A4A
+  AttributeFontSize 11
+  FontSize 12
+}
+skinparam enum {
+  BackgroundColor #EFEFEA
+  BorderColor #4A4A4A
+}
+skinparam activity {
+  BackgroundColor #F6F6F4
+  BorderColor #4A4A4A
+  DiamondBackgroundColor #EFEFEA
+  DiamondBorderColor #4A4A4A
+  FontSize 12
+}
+skinparam partition {
+  BorderColor #6E6E6E
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FBF7E8
+  BorderColor #8A8A7A
+  FontSize 11
+}

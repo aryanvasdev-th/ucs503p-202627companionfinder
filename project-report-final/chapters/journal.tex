@@ -1,0 +1,201 @@
+% ===== CHAPTER 9: PROJECT JOURNAL =====
+
+\chapter{Project Journal}
+\label{ch:journal}
+
+This chapter records each member's contributions in date order, with the errors met along
+the way and how they were fixed. The work was divided by area: Aryan Vasdev built the
+server and most of the application features, Ishaan Sharma set up the Flutter app and
+designed its screens, Saumya Singh wrote the proposal and feasibility study and drew the UML
+models, and Shraney Sharma was responsible for testing.
+
+Entries taken from version control carry the date and time of the commit, from the team's
+local repository or from the course repository on GitHub. Work that never went through a
+commit, such as writing, drawing and manual testing, is dated by the milestone it was
+delivered for.
+
+% Break the page before a member's section when fewer than about ten lines are
+% left, so a heading is never stranded above an empty page bottom.
+\newcommand{\memberbreak}{\par\vspace{0pt plus 10\baselineskip}\penalty-250\vspace{0pt plus -10\baselineskip}}
+
+\newcommand{\jhead}{%
+\hline
+\textbf{When} & \textbf{Work done} & \textbf{Errors met, and the fix or improvement} \\
+\hline}
+
+% ------------------------------------------------------------------
+\section{Aryan Vasdev (1024030549)}
+
+\begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\jhead
+\endfirsthead
+\jhead
+\endhead
+\hline
+\endfoot
+30 Aug & First full commit of the working app: sign-up with one-time codes, hosting,
+join requests with host approval, group chat over Socket.IO, ratings, notifications and the
+SOS server path. &
+Two accepts could overfill an activity because the capacity check and the insert were
+separate statements; both moved into one transaction with \texttt{FOR UPDATE} locks. \\
+\hline
+1 Sep, 04:22 & Forgot-password flow on the same one-time code system. &
+A sign-up code could have been replayed to reset a password; codes now carry a
+\texttt{purpose}, and the reset endpoint gives the same answer whether or not the address
+exists. \\
+\hline
+1 Sep, 04:34--04:56 & Gender required at sign-up; app pointed at the laptop's new address. &
+The app had the laptop's old wifi address hard-coded and could not connect. \\
+\hline
+1 Sep, 04:56--05:22 & HEIC and HEIF photos converted to JPEG on the server. &
+iPhone photos were refused outright. Converting them was not enough on its own: the app
+was sending them with no content type, so the upload filter rejected them first. Fixed in a
+second commit. \\
+\hline
+1 Sep, 05:22--05:33 & Emergency contact moved to its own page; show/hide on the password
+field. &
+Inside Edit Profile the emergency contact read as one more optional field. \\
+\hline
+18 Sep, 22:27--22:56 & Assembled the mid-semester report in LaTeX; one shared category list
+for the host form and Discover. &
+The host form offered a ``More\ldots'' chip that posted ``More\ldots'' as a category, which
+Discover could not show; found while checking the report against the code. The server now
+refuses any category outside the list, and a unit test checks every category has a chip. \\
+\hline
+19 Nov, 06:46--07:01 & Live notifications over Socket.IO, reviews with tags, public
+profiles, teams, and a first ID check by face matching. & --- \\
+\hline
+19 Nov, 07:26 & App made to work from other students' phones. &
+Android release builds had no internet permission and blocked plain HTTP; iOS needed a
+local-network permission. All three added. \\
+\hline
+19 Nov, 09:42 & App can be pointed at a full server address such as a tunnel. &
+Campus wifi isolates devices, so phones could not reach the laptop even on the same network. \\
+\hline
+19 Nov, 10:02 & ID card checked by OCR and barcode instead of faces. &
+Face matching scored the real owner of a card at 22\%, so it could not tell people apart.
+Replaced with the four-step card check; about 100~MB of TensorFlow dependencies dropped. \\
+\hline
+19 Nov, 10:14--10:22 & Categories renamed; host form inputs reworked; date and time merged
+into one field. &
+The $-$ and $+$ buttons had 22-point margins that squeezed the number between them to
+nothing when two sat side by side. Margins removed, and a widget test checks the digits fit. \\
+\hline
+19 Nov, 10:33--10:58 & Events with activities inside them, multi-day events, team activities,
+a real Settings page, and the new app icon. &
+The duration picker stopped at 12 hours, too short for a three-day fest; events now take an
+end date instead. \\
+\hline
+19 Nov, 11:01 & Navigation after login. &
+The iOS back swipe slid from anywhere in the app back to the filled-in login page. Login now
+replaces the whole navigation stack. \\
+\hline
+19 Nov, 14:07--14:28 & Host chooser colours, team setup as teams $\times$ players, and the
+one-command start script with a permanent ngrok address. & --- \\
+\hline
+19 Nov, 14:35 & Removed the in-app setting for the server address. &
+Anyone holding the phone could have pointed the app at their own server and collected the
+next login. With a permanent address the setting was no longer needed. \\
+\hline
+19 Nov, 14:42--14:47 & Admin moderation (ban, remove, tick, feature); app named ``Campus
+Companion'' on Android. & --- \\
+\hline
+19 Nov, 15:04 & Chat fix. &
+New messages only appeared after reopening a chat, because the chat screen was handed the
+notification socket, which was already connected and so never joined the chat room. Chat and
+notifications now use separate connections. \\
+\hline
+19 Nov, 15:08 & Login kept in secure storage across restarts. &
+Every restart meant logging in again. \\
+\hline
+19 Nov, 15:13--15:18 & Group chat button on the activity page; photos shrunk and cached. &
+A phone avatar of 423~KB now uploads as 39~KB, which matters on mobile data and the tunnel's
+monthly allowance. \\
+\hline
+20 Nov, 06:13 & Made \texttt{schema.sql} work on a fresh database. &
+Setting up the test database showed the script had never run on a clean MySQL install. \\
+\hline
+20 Nov, 06:16--06:35 & Committed the server test suite and the final report's figures. &
+Two tests were fixed after they were found to pass without testing what they claimed
+(Chapter~\ref{ch:testing}). \\
+\hline
+\end{longtable}
+
+% ------------------------------------------------------------------
+\clearpage
+\section{Ishaan Sharma (1024030553)}
+
+\begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\jhead
+\endfirsthead
+\jhead
+\endhead
+\hline
+\endfoot
+21 Aug (course repo) & Created the starter Flutter application for the team and opened the
+first pull request to the course repository; removed the stale code the template had left. &
+--- \\
+\hline
+Before mid-semester & Screen design for the first version of the app. &
+--- \\
+\hline
+Before the final evaluation & Screen design for the features added in November. &
+--- \\
+\hline
+\end{longtable}
+
+% ------------------------------------------------------------------
+\memberbreak
+\section{Saumya Singh (1024030554)}
+
+\begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\jhead
+\endfirsthead
+\jhead
+\endhead
+\hline
+\endfoot
+Before implementation & Wrote the project proposal and the feasibility study in
+Chapter~2, covering the technical, managerial, economic, financial, cultural, social, safety
+and political dimensions, and the go decision. &
+--- \\
+\hline
+Mid-semester (18 Sep) & Drew the use case, class and activity diagrams for the mid-semester
+report, with the twenty-one use case scenarios. &
+Drawn as one figure, the class model was unreadable at page width, so it was split into a
+domain model and an application layer model. \\
+\hline
+Final evaluation (20 Nov) & Drew the sequence, communication, state, component and deployment
+diagrams, and updated the use case and domain class diagrams for ID checks, events and
+teams, reviews and the admin role. &
+--- \\
+\hline
+\end{longtable}
+
+% ------------------------------------------------------------------
+\memberbreak
+\section{Shraney Sharma (1024030551)}
+
+\begin{longtable}{|L{1.6cm}|L{4.2cm}|L{5.2cm}|}
+\jhead
+\endfirsthead
+\jhead
+\endhead
+\hline
+\endfoot
+Before mid-semester & Walked every feature end to end against the real database, on an iOS
+device and an Android emulator: sign-up, wrong and expired codes, the resend cooldown,
+password reset, hosting, requesting, accepting and declining, full activities, chat across two
+devices, ratings and cancelling. &
+--- \\
+\hline
+Before mid-semester & Tested the two risky paths separately: two accepts into one remaining
+place, and uploads that were too large, the wrong type, or HEIC from an iPhone. &
+--- \\
+\hline
+Final evaluation (20 Nov) & Test plan and test cases for the final system (Chapter~5):
+the levels of testing, the 29 server cases and the system test walk-through with
+screenshots. &
+--- \\
+\hline
+\end{longtable}

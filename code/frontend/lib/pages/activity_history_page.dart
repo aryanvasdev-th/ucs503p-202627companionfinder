@@ -8,6 +8,7 @@ import '../services/auth_session.dart';
 import '../theme/app_theme.dart';
 import '../utils/avatar.dart';
 import 'activity_detail_page.dart';
+import '../utils/when_format.dart';
 
 class ActivityHistoryPage extends StatefulWidget {
   const ActivityHistoryPage({super.key});
@@ -36,15 +37,18 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
       if (!mounted) return;
       if (data['success'] == true) {
         final now = DateTime.now();
-        final past = (data['activities'] as List)
-            .cast<Map<String, dynamic>>()
-            .where((a) => DateTime.parse(a['startsAt']).isBefore(now))
-            .toList()
-          ..sort(
-            (a, b) => DateTime.parse(
-              b['startsAt'],
-            ).compareTo(DateTime.parse(a['startsAt'])),
-          );
+        final past =
+            (data['activities'] as List)
+                .cast<Map<String, dynamic>>()
+                // Only once it has ended — a multi-day event still running
+                // isn't history yet.
+                .where((a) => activityHasEnded(a, now))
+                .toList()
+              ..sort(
+                (a, b) =>
+                    DateTime.parse(b['startsAt'])
+                        .compareTo(DateTime.parse(a['startsAt'])),
+              );
         setState(() => _past = past);
       } else {
         setState(() => _error = data['message'] ?? 'Could not load history');
@@ -55,17 +59,6 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
         () => _error = 'Network error. Check your connection and try again.',
       );
     }
-  }
-
-  String _formatWhen(DateTime dt) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, $hour:$minute $period';
   }
 
   @override
@@ -126,15 +119,13 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
       itemBuilder: (context, i) {
         final activity = _past![i];
         final startsAt = DateTime.parse(activity['startsAt']).toLocal();
-        final isHost =
-            activity['hostUserId'].toString() == AuthSession.userId;
+        final isHost = activity['hostUserId'].toString() == AuthSession.userId;
         return InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) =>
-                    ActivityDetailPage(activityId: activity['id']),
+                builder: (_) => ActivityDetailPage(activityId: activity['id']),
               ),
             );
             _load();
@@ -171,7 +162,7 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${_formatWhen(startsAt)} · ${isHost ? 'You hosted' : 'Hosted by ${activity['hostName'] ?? 'Unknown'}'}',
+                        '${formatWhen(startsAt, activityWindow(activity).$2)} · ${isHost ? 'You hosted' : 'Hosted by ${activity['hostName'] ?? 'Unknown'}'}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 12.5, color: extras.text2),
@@ -194,7 +185,9 @@ class _ActivityHistoryPageState extends State<ActivityHistoryPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Center(child: Padding(padding: const EdgeInsets.all(32), child: child)),
+          child: Center(
+            child: Padding(padding: const EdgeInsets.all(32), child: child),
+          ),
         ),
       ),
     );

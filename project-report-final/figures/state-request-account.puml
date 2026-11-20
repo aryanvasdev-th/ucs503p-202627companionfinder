@@ -1,0 +1,35 @@
+@startuml state_request_account
+!include skin.iuml
+skinparam state {
+  BackgroundColor #F6F6F4
+  BorderColor #4A4A4A
+  FontSize 12
+}
+
+state "Join request" as JR {
+  [*] --> Pending : request-join
+  Pending --> [*] : guest withdraws\n(row deleted)
+  Pending --> Accepted : host accepts\n[place left]
+  Pending --> Pending : host accepts\n[full] / 409
+  Pending --> Declined : host declines
+  Accepted --> [*] : guest leaves or\nactivity deleted
+  Declined --> Declined : guest asks again / 403
+  Declined : final for this activity
+}
+
+state "Account" as AC {
+  [*] --> Unverified : register
+  Unverified --> Unverified : login / 403,\nnew code sent
+  Unverified --> Active : correct code\nwithin 10 min
+  state Active {
+    [*] --> NoIdCheck
+    NoIdCheck --> IdFailed : card check fails
+    IdFailed --> IdVerified : card check passes
+    NoIdCheck --> IdVerified : card check passes\nor admin gives tick
+    IdVerified --> NoIdCheck : admin removes tick
+  }
+  Active --> Banned : admin bans
+  Banned --> Active : admin unbans
+  Banned : login, API and socket refused
+}
+@enduml

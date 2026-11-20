@@ -68,9 +68,16 @@ class _LoginPageState extends State<LoginPage> {
       if (data['success'] == true) {
         AuthSession.token = data['token'] as String?;
         AuthSession.userId = data['user']?['id']?.toString();
-        Navigator.push(
+        AuthSession.isAdmin = data['user']?['isAdmin'] == true;
+        // Stay logged in after the app is closed.
+        await AuthSession.persist();
+        if (!mounted) return;
+        // Replace the whole stack: once you're logged in, the iOS back swipe
+        // (or Android back) must not take you back to the login form.
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginSuccessPage()),
+          (route) => false,
         );
       } else if (data['requiresVerification'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,22 +130,14 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 const SizedBox(height: 40),
 
+                // Same double-C mark as the app icon.
                 Center(
-                  child: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [theme.colorScheme.primary, extras.brandInk],
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.people_alt_rounded,
-                      color: Colors.white,
-                      size: 30,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Image.asset(
+                      'assets/brand/app_icon.png',
+                      width: 72,
+                      height: 72,
                     ),
                   ),
                 ),

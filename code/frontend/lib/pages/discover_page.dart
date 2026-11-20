@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../api_config.dart';
 import '../models/activity.dart';
+import '../models/categories.dart';
 import '../services/auth_session.dart';
 import '../theme/app_theme.dart';
 import '../utils/avatar.dart';
@@ -12,14 +13,8 @@ import '../widgets/activity_card.dart';
 import '../widgets/app_top_bar.dart';
 import 'activity_detail_page.dart';
 import 'notifications_page.dart';
-
-const kDiscoverCategories = [
-  'All Activities',
-  'Hiking',
-  'Coffee',
-  'Gaming',
-  'Sports',
-];
+import 'people_search_page.dart';
+import '../utils/when_format.dart';
 
 /// Default landing tab: search and browse activities.
 class DiscoverPage extends StatefulWidget {
@@ -35,7 +30,7 @@ class DiscoverPage extends StatefulWidget {
 }
 
 class _DiscoverPageState extends State<DiscoverPage> {
-  String _activeCategory = kDiscoverCategories.first;
+  String _activeCategory = kAllActivitiesLabel;
   List<ActivityListing>? _listings;
   String? _error;
 
@@ -86,7 +81,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
       rating: a['hostRating'] == null
           ? null
           : (a['hostRating'] as num).toDouble(),
-      timeLabel: _formatWhen(startsAt),
+      timeLabel: formatWhen(startsAt, activityWindow(a).$2),
       peopleJoined: a['peopleJoined'],
       peopleCapacity: a['maxPeople'],
       hostName: a['hostName'] ?? 'Unknown',
@@ -97,28 +92,10 @@ class _DiscoverPageState extends State<DiscoverPage> {
       joinedByMe: a['joinedByMe'] == true,
       requestPending: a['requestPending'] == true,
       requestDeclined: a['requestDeclined'] == true,
+      isEvent: a['isEvent'] == true,
+      isFeatured: a['isFeatured'] == true,
+      eventActivityCount: (a['eventActivityCount'] as int?) ?? 0,
     );
-  }
-
-  String _formatWhen(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, $hour:$minute $period';
   }
 
   Future<void> _requestJoin(int activityId) async {
@@ -132,9 +109,8 @@ class _DiscoverPageState extends State<DiscoverPage> {
       final data = jsonDecode(response.body);
       if (!mounted) return;
       if (data['success'] == true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Request sent!')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Request sent!')));
         _load();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,15 +134,14 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
     final listings = _listings == null
         ? const <ActivityListing>[]
-        : _activeCategory == kDiscoverCategories.first
+        : _activeCategory == kAllActivitiesLabel
         ? _listings!
         : _listings!.where((l) => l.category == _activeCategory).toList();
 
     return Scaffold(
       appBar: AppTopBar(
-        onBellTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const NotificationsPage()),
-        ),
+        onBellTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const NotificationsPage())),
       ),
       body: SafeArea(
         top: false,
@@ -199,6 +174,22 @@ class _DiscoverPageState extends State<DiscoverPage> {
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontSize: 14.5,
                               color: extras.text3,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const PeopleSearchPage(),
+                            ),
+                          ),
+                          child: Tooltip(
+                            message: 'Find people',
+                            child: Icon(
+                              Icons.person_search_rounded,
+                              size: 22,
+                              color: theme.colorScheme.primary,
                             ),
                           ),
                         ),

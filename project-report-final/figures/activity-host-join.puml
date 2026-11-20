@@ -1,0 +1,77 @@
+@startuml activity_host_join
+!include skin.iuml
+skinparam ConditionEndStyle hline
+
+|#FFFFFF|Host|
+|#F4F4F1|API server|
+|#FAFAF8|Participant|
+
+|Host|
+start
+:Fill the Host Activity form: title, category,
+date and time, duration, capacity, landmark;
+:POST /api/activities;
+
+|API server|
+:BEGIN TRANSACTION;
+:Insert the activity, enrol the host as its first
+participant, open the group conversation and put
+the host in it;
+:COMMIT, or roll all four statements
+back together if any of them fails;
+
+|Host|
+if (Banner photo chosen?) then (yes)
+  |Host|
+  :POST /api/activities/{id}/banner;
+  |API server|
+  :Reject anything over 5 MB or outside JPEG,
+  PNG, WEBP, HEIC and HEIF, convert HEIC and
+  HEIF to JPEG, then store the URL;
+else (no)
+endif
+
+|Participant|
+:Open Discover and filter
+by category;
+:GET /api/activities;
+
+|API server|
+:Return every listing with its head count, the
+host's average rating, and whether this student
+has already joined or has a request pending;
+
+|Participant|
+:Open the activity and tap "Request to join";
+:POST /api/activities/{id}/request-join;
+
+|API server|
+if (Requester is the host,
+or has already joined?) then (yes)
+  |API server|
+  :400 - there is nothing to request;
+  detach
+else (no)
+endif
+if (Head count has reached max_people?) then (yes)
+  |API server|
+  :409 - the activity is full;
+  detach
+else (no)
+endif
+if (The host declined an earlier request?) then (yes)
+  |API server|
+  :403 - a decline is final, so one student
+  cannot keep re-asking the same host;
+  detach
+else (no)
+endif
+:Upsert activity_join_requests
+with status = pending;
+:Write a join_request notification for the host;
+
+|Host|
+:See the unread badge on the bell;
+stop
+
+@enduml

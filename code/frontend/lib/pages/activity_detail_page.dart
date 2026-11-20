@@ -1,13 +1,20 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../api_config.dart';
 import '../services/auth_session.dart';
+import '../services/realtime_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/avatar.dart';
+import '../widgets/event_activities_section.dart';
+import '../widgets/verified_badge.dart';
 import 'chat_page.dart';
+import 'user_profile_page.dart';
+import '../utils/when_format.dart';
 
 class ActivityDetailPage extends StatefulWidget {
   final int activityId;
@@ -24,11 +31,31 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
   bool _isLoading = true;
   String? _error;
   bool _isActionInFlight = false;
+  StreamSubscription<Map<String, dynamic>>? _liveSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // A pushed notification about this activity (new request, accepted,
+    // someone joined your team) means what's on screen is stale.
+    _liveSub = RealtimeService.notifications.listen((n) {
+      if (n['activityId'] == widget.activityId) _load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _liveSub?.cancel();
+    super.dispose();
+  }
+
+  void _openProfile(int userId, String? name) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UserProfilePage(userId: userId, initialName: name),
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -78,8 +105,8 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
       if (!mounted) return;
       if (data['success'] == true) {
         setState(
-          () => _joinRequests =
-              (data['requests'] as List).cast<Map<String, dynamic>>(),
+          () => _joinRequests = (data['requests'] as List)
+              .cast<Map<String, dynamic>>(),
         );
       }
     } catch (e) {
@@ -221,7 +248,11 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete this activity?'),
+        title: Text(
+          _activity?['isEvent'] == true
+              ? 'Delete this event?'
+              : 'Delete this activity?',
+        ),
         content: const Text(
           'This removes it for everyone, along with its group chat. This can\'t be undone.',
         ),
@@ -260,12 +291,22 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
     }
   }
 
-  Future<void> _rateParticipant(int userId, String name) async {
-    final score = await showDialog<double>(
+  Future<void> _rateParticipant(
+    int userId,
+    String name,
+    Map<String, dynamic> participant,
+  ) async {
+    final result = await showDialog<_ReviewResult>(
       context: context,
-      builder: (context) => _RatingDialog(name: name),
+      builder: (context) => _RatingDialog(
+        name: name,
+        initialScore: (participant['myRating'] as num?)?.toDouble(),
+        initialReview: participant['myReview'] as String?,
+        initialTags: ((participant['myTags'] as List?) ?? const [])
+            .cast<String>(),
+      ),
     );
-    if (score == null) return;
+    if (result == null) return;
 
     try {
       final response = await http.post(
@@ -276,12 +317,19 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
           'Content-Type': 'application/json',
           ...AuthSession.authHeaders,
         },
-        body: jsonEncode({'ratedUserId': userId, 'score': score}),
+        body: jsonEncode({
+          'ratedUserId': userId,
+          'score': result.score,
+          'review': result.review,
+          'tags': result.tags,
+        }),
       );
       final data = jsonDecode(response.body);
       if (!mounted) return;
       if (data['success'] == true) {
-        _showMessage('Rating saved');
+        _showMessage(
+          result.review.isNotEmpty ? 'Review posted' : 'Rating saved',
+        );
         _load();
       } else {
         _showMessage(data['message'] ?? 'Could not save rating');
@@ -298,7 +346,11 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
     final extras = context.extras;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Activity Details')),
+      appBar: AppBar(
+        title: Text(
+          _activity?['isEvent'] == true ? 'Event' : 'Activity Details',
+        ),
+      ),
       body: SafeArea(
         top: false,
         child: _isLoading
@@ -324,6 +376,7 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
     final durationMinutes = activity['durationMinutes'] as int?;
     final endsAt = startsAt.add(Duration(minutes: durationMinutes ?? 0));
     final isOver = DateTime.now().isAfter(endsAt);
+    final isEvent = activity['isEvent'] == true;
 
     final bannerUrl = activity['bannerUrl'] as String?;
 
@@ -333,8 +386,8 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
         if (bannerUrl != null && bannerUrl.isNotEmpty) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              '${ApiConfig.apiRoot}$bannerUrl',
+            child: CachedNetworkImage(
+              imageUrl: '${ApiConfig.apiRoot}$bannerUrl',
               height: 160,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -345,6 +398,34 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
         Text(
           activity['title'],
           style: theme.textTheme.headlineSmall?.copyWith(fontSize: 24),
+        ),
+        const SizedBox(height: 4),
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () =>
+              _openProfile(activity['hostUserId'], activity['hostName']),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Hosted by ',
+                  style: TextStyle(fontSize: 13.5, color: extras.text2),
+                ),
+                NameWithBadge(
+                  name: activity['hostName'] ?? 'Unknown',
+                  verified: activity['hostVerified'] == true,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.primary,
+                  ),
+                  badgeSize: 14,
+                ),
+              ],
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -357,7 +438,7 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
             ),
             _InfoChip(
               icon: Icons.event_outlined,
-              label: _formatDateTime(startsAt),
+              label: formatWhen(startsAt, activityWindow(activity).$2),
             ),
             if ((activity['landmark'] as String?)?.isNotEmpty == true)
               _InfoChip(
@@ -366,9 +447,17 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
               ),
             _InfoChip(
               icon: Icons.groups_outlined,
-              label:
-                  '${activity['peopleJoined']}/${activity['maxPeople']} people',
+              // Events show how many are going, without a huge cap.
+              label: isEvent
+                  ? '${activity['peopleJoined']} going'
+                  : '${activity['peopleJoined']}/${activity['maxPeople']} people',
             ),
+            if (isEvent)
+              _InfoChip(
+                icon: Icons.celebration_rounded,
+                label:
+                    'Event · ${(activity['eventActivities'] as List?)?.length ?? 0} activities',
+              ),
           ],
         ),
         if ((activity['description'] as String?)?.isNotEmpty == true) ...[
@@ -376,6 +465,41 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
           Text(
             activity['description'],
             style: theme.textTheme.bodyMedium?.copyWith(color: extras.text2),
+          ),
+        ],
+        // Right under the details, so the people in it can talk without
+        // hunting for the chat in Messages.
+        if (activity['groupChatId'] != null) ...[
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton.tonalIcon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ChatPage(
+                    conversationId: activity['groupChatId'] as int,
+                    title: activity['title'] ?? 'Group chat',
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.forum_outlined, size: 20),
+              label: Text(isEvent ? 'Event group chat' : 'Group chat'),
+            ),
+          ),
+        ],
+        if (isEvent) ...[
+          const SizedBox(height: 26),
+          EventActivitiesSection(
+            eventId: widget.activityId,
+            eventStartsAt: startsAt,
+            items: ((activity['eventActivities'] as List?) ?? const [])
+                .cast<Map<String, dynamic>>(),
+            isHost: isHost,
+            canSignUp: isJoined && !isHost && !isOver,
+            canEdit: !isOver,
+            onChanged: _load,
+            onOpenProfile: _openProfile,
           ),
         ],
         if (isHost) ...[
@@ -400,13 +524,13 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
         ],
         const SizedBox(height: 26),
         Text(
-          'Who\'s In',
+          isEvent ? 'Attendees' : 'Who\'s In',
           style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
         ),
         if (!isOver) ...[
           const SizedBox(height: 4),
           Text(
-            'Ratings open once this activity is over.',
+            'Ratings and reviews open once this activity is over. Tap someone to see their profile.',
             style: theme.textTheme.bodySmall?.copyWith(
               fontSize: 12.5,
               color: extras.text2,
@@ -418,97 +542,121 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
           final userId = p['id'] as int;
           final isMe = userId.toString() == AuthSession.userId;
           final avgRating = p['avgRating'] as num?;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: colorForSeed(userId),
-                  child: Text(
-                    initialsFor(p['name'] ?? '?'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+          final myRating = p['myRating'] as num?;
+          return InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _openProfile(userId, p['name']),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: colorForSeed(userId),
+                    child: Text(
+                      initialsFor(p['name'] ?? '?'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        p['name'] ?? 'Unknown',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        NameWithBadge(
+                          name: p['name'] ?? 'Unknown',
+                          verified: p['verified'] == true,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      Row(
-                        children: [
-                          if (avgRating != null) ...[
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Color(0xFFF0A93B),
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              avgRating.toStringAsFixed(1),
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: extras.text2,
+                        Row(
+                          children: [
+                            if (avgRating != null) ...[
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 14,
+                                color: Color(0xFFF0A93B),
                               ),
-                            ),
-                          ] else
-                            Text(
-                              'New',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: extras.text3,
+                              const SizedBox(width: 3),
+                              Text(
+                                avgRating.toStringAsFixed(1),
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: extras.text2,
+                                ),
                               ),
-                            ),
-                          if (userId == activity['hostUserId']) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              '· Host',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: extras.text3,
+                            ] else
+                              Text(
+                                'New',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: extras.text3,
+                                ),
                               ),
-                            ),
+                            if (userId == activity['hostUserId']) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '· Host',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: extras.text3,
+                                ),
+                              ),
+                            ],
+                            if (myRating != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '· You gave ${myRating.toStringAsFixed(1)}',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: extras.text3,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isMe) ...[
+                    if (isJoined || isHost)
+                      IconButton(
+                        onPressed: isOver
+                            ? () => _rateParticipant(
+                                userId,
+                                p['name'] ?? 'this person',
+                                p,
+                              )
+                            : null,
+                        icon: Icon(
+                          myRating != null
+                              ? Icons.rate_review_rounded
+                              : Icons.rate_review_outlined,
+                        ),
+                        tooltip: isOver
+                            ? (myRating != null
+                                  ? 'Edit review'
+                                  : 'Rate & review')
+                            : 'You can rate once this activity is over',
                       ),
-                    ],
-                  ),
-                ),
-                if (!isMe) ...[
-                  IconButton(
-                    onPressed: isOver
-                        ? () => _rateParticipant(
-                            userId,
-                            p['name'] ?? 'this person',
-                          )
-                        : null,
-                    icon: const Icon(Icons.star_outline_rounded),
-                    tooltip: isOver
-                        ? 'Rate'
-                        : 'You can rate once this activity is over',
-                  ),
-                  IconButton(
-                    onPressed: () =>
-                        _messageParticipant(userId, p['name'] ?? 'Chat'),
-                    icon: const Icon(Icons.chat_bubble_outline_rounded),
-                    tooltip: 'Message',
-                  ),
+                    IconButton(
+                      onPressed: () =>
+                          _messageParticipant(userId, p['name'] ?? 'Chat'),
+                      icon: const Icon(Icons.chat_bubble_outline_rounded),
+                      tooltip: 'Message',
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           );
         }),
@@ -551,13 +699,88 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                 foregroundColor: theme.colorScheme.error,
                 side: BorderSide(color: theme.colorScheme.error),
               ),
-              child: const Text('Delete Activity'),
+              child: Text(isEvent ? 'Delete Event' : 'Delete Activity'),
             ),
           ),
         ],
+        if (AuthSession.isAdmin) ..._adminTools(theme, extras, isHost),
       ],
     );
   }
+
+  Future<void> _setFeatured(bool featured) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+          '${ApiConfig.apiRoot}/api/admin/activities/${widget.activityId}/featured',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthSession.authHeaders,
+        },
+        body: jsonEncode({'featured': featured}),
+      );
+      final data = jsonDecode(response.body);
+      if (!mounted) return;
+      _showMessage(data['message'] ?? 'Done');
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage('Network error. Check your connection and try again.');
+    }
+  }
+
+  /// The app maker's moderation tools: pin to the top of Discover, and
+  /// remove someone else's activity (the host is told why).
+  List<Widget> _adminTools(ThemeData theme, AppExtras extras, bool isHost) => [
+    const SizedBox(height: 20),
+    Container(
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: extras.brandTint,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.admin_panel_settings_outlined,
+                size: 18,
+                color: extras.brandInk,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Feature on Discover',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: extras.brandInk,
+                  ),
+                ),
+              ),
+              Switch(
+                value: _activity?['isFeatured'] == true,
+                onChanged: _isActionInFlight ? null : _setFeatured,
+              ),
+            ],
+          ),
+          if (!isHost)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _isActionInFlight ? null : _deleteActivity,
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                label: const Text('Remove (admin)'),
+              ),
+            ),
+        ],
+      ),
+    ),
+  ];
 
   Widget _buildRequestCard(
     ThemeData theme,
@@ -566,135 +789,123 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
   ) {
     final avgRating = request['avgRating'] as num?;
     final gender = request['gender'] as String?;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-          width: 1.5,
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => _openProfile(request['userId'], request['name']),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: colorForSeed(request['userId']),
+                  child: Text(
+                    initialsFor(request['name'] ?? '?'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      NameWithBadge(
+                        name: request['name'] ?? 'Unknown',
+                        verified: request['verified'] == true,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Tap to view profile & reviews',
+                        style: TextStyle(fontSize: 11.5, color: extras.text3),
+                      ),
+                      Row(
+                        children: [
+                          if (avgRating != null) ...[
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 14,
+                              color: Color(0xFFF0A93B),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              avgRating.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: extras.text2,
+                              ),
+                            ),
+                          ] else
+                            Text(
+                              'New',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: extras.text3,
+                              ),
+                            ),
+                          if (gender != null && gender.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '· $gender',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: extras.text3,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isActionInFlight
+                        ? null
+                        : () => _respondToRequest(request['id'], false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                      side: BorderSide(color: theme.colorScheme.error),
+                    ),
+                    child: const Text('Decline'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isActionInFlight
+                        ? null
+                        : () => _respondToRequest(request['id'], true),
+                    child: const Text('Accept'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: colorForSeed(request['userId']),
-                child: Text(
-                  initialsFor(request['name'] ?? '?'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      request['name'] ?? 'Unknown',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        if (avgRating != null) ...[
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 14,
-                            color: Color(0xFFF0A93B),
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            avgRating.toStringAsFixed(1),
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: extras.text2,
-                            ),
-                          ),
-                        ] else
-                          Text(
-                            'New',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: extras.text3,
-                            ),
-                          ),
-                        if (gender != null && gender.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '· $gender',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: extras.text3,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isActionInFlight
-                      ? null
-                      : () => _respondToRequest(request['id'], false),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
-                    side: BorderSide(color: theme.colorScheme.error),
-                  ),
-                  child: const Text('Decline'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isActionInFlight
-                      ? null
-                      : () => _respondToRequest(request['id'], true),
-                  child: const Text('Accept'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, $hour:$minute $period';
   }
 }
 
@@ -731,16 +942,46 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
+/// Must match backend/reviewTags.js.
+const kReviewTags = [
+  'Friendly',
+  'Punctual',
+  'Great host',
+  'Good communicator',
+  'Reliable',
+  'Respectful',
+  'Fun to be around',
+];
+
+class _ReviewResult {
+  final double score;
+  final String review;
+  final List<String> tags;
+  const _ReviewResult(this.score, this.review, this.tags);
+}
+
 class _RatingDialog extends StatefulWidget {
   final String name;
-  const _RatingDialog({required this.name});
+  final double? initialScore;
+  final String? initialReview;
+  final List<String> initialTags;
+  const _RatingDialog({
+    required this.name,
+    this.initialScore,
+    this.initialReview,
+    this.initialTags = const [],
+  });
 
   @override
   State<_RatingDialog> createState() => _RatingDialogState();
 }
 
 class _RatingDialogState extends State<_RatingDialog> {
-  double _score = 5;
+  late double _score = widget.initialScore ?? 5;
+  late final _reviewController = TextEditingController(
+    text: widget.initialReview ?? '',
+  );
+  late final Set<String> _tags = {...widget.initialTags};
   static const _starSize = 36.0;
 
   void _setFromTap(int starIndex, double dx) {
@@ -749,44 +990,77 @@ class _RatingDialogState extends State<_RatingDialog> {
   }
 
   @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final extras = context.extras;
     return AlertDialog(
-      title: Text('Rate ${widget.name}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (i) {
-              final IconData icon;
-              if (_score >= i + 1) {
-                icon = Icons.star_rounded;
-              } else if (_score >= i + 0.5) {
-                icon = Icons.star_half_rounded;
-              } else {
-                icon = Icons.star_outline_rounded;
-              }
-              return GestureDetector(
-                onTapDown: (details) =>
-                    _setFromTap(i, details.localPosition.dx),
-                child: SizedBox(
-                  width: _starSize,
-                  height: _starSize,
-                  child: Icon(
-                    icon,
-                    color: const Color(0xFFF0A93B),
-                    size: 32,
+      title: Text('Review ${widget.name}'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (i) {
+                final IconData icon;
+                if (_score >= i + 1) {
+                  icon = Icons.star_rounded;
+                } else if (_score >= i + 0.5) {
+                  icon = Icons.star_half_rounded;
+                } else {
+                  icon = Icons.star_outline_rounded;
+                }
+                return GestureDetector(
+                  onTapDown: (details) =>
+                      _setFromTap(i, details.localPosition.dx),
+                  child: SizedBox(
+                    width: _starSize,
+                    height: _starSize,
+                    child: Icon(icon, color: const Color(0xFFF0A93B), size: 32),
                   ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _score.toStringAsFixed(1),
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ],
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _score.toStringAsFixed(1),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              alignment: WrapAlignment.center,
+              children: kReviewTags
+                  .map(
+                    (t) => FilterChip(
+                      label: Text(t, style: const TextStyle(fontSize: 12)),
+                      selected: _tags.contains(t),
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (on) =>
+                          setState(() => on ? _tags.add(t) : _tags.remove(t)),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _reviewController,
+              maxLength: 500,
+              maxLines: 3,
+              minLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Write a short review (optional)',
+                hintStyle: TextStyle(color: extras.text3, fontSize: 13.5),
+              ),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -794,7 +1068,14 @@ class _RatingDialogState extends State<_RatingDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () => Navigator.pop(context, _score),
+          onPressed: () => Navigator.pop(
+            context,
+            _ReviewResult(
+              _score,
+              _reviewController.text.trim(),
+              _tags.toList(),
+            ),
+          ),
           child: const Text('Submit'),
         ),
       ],

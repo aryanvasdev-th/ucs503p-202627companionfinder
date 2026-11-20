@@ -188,6 +188,16 @@ class AppTheme {
       textTheme: _textTheme(AppColors.textLight, AppColors.text2Light),
       extensions: const [AppExtras.light],
       dividerColor: AppColors.dividerLight,
+      // Sheets (host chooser, date picker) sit on the app's own background
+      // instead of Material's default tinted grey.
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.bgLight,
+        surfaceTintColor: Colors.transparent,
+        dragHandleColor: AppColors.text3Light,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.fieldLight,
@@ -227,6 +237,16 @@ class AppTheme {
       textTheme: _textTheme(AppColors.textDark, AppColors.text2Dark),
       extensions: const [AppExtras.dark],
       dividerColor: AppColors.dividerDark,
+      // Sheets (host chooser, date picker) sit on the app's own background
+      // instead of Material's default tinted grey.
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.bgDark,
+        surfaceTintColor: Colors.transparent,
+        dragHandleColor: AppColors.text3Dark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.fieldDark,

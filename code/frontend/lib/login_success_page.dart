@@ -50,11 +50,12 @@ class LoginSuccessPage extends StatelessWidget {
               height: 52,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushReplacement(
+                  Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const MainScaffold(initialIndex: 1),
                     ),
+                    (route) => false,
                   );
                 },
                 child: const Text('Continue'),

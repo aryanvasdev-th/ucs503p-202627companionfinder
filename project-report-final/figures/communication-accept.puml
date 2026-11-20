@@ -1,0 +1,29 @@
+@startuml communication_accept
+!include skin.iuml
+skinparam nodesep 60
+skinparam ranksep 60
+skinparam rectangle {
+  BackgroundColor #F6F6F4
+  BorderColor #4A4A4A
+  FontStyle normal
+}
+
+rectangle ":HostApp" as HA
+rectangle ":activitiesRoutes" as R
+rectangle ":authMiddleware" as MW
+rectangle ":activitiesController" as C
+rectangle ":MySQL" as DB
+rectangle ":notifications" as N
+rectangle ":socket.js" as S
+rectangle ":GuestApp" as GA
+
+HA --> R : 1: POST accept
+R --> MW : 2: verifyToken()
+MW --> C : 3: acceptJoinRequest()
+C --> DB : 4: lock rows, check capacity,\n5: insert participant + chat member,\n6: update request, commit
+C --> N : 7: createNotification(request_accepted)
+N --> DB : 7.1: insert notification
+N --> S : 7.2: emitToUser(guest)
+S --> GA : 7.3: notification:new
+C --> HA : 8: 200 accepted
+@enduml

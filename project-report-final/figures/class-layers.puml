@@ -1,0 +1,184 @@
+@startuml class_layers
+!include skin.iuml
+hide circle
+skinparam nodesep 24
+skinparam ranksep 48
+
+package "Flutter client (frontend/lib)" {
+  class CampusCompanion <<widget>> {
+    +build(BuildContext) : Widget
+  }
+  class MainScaffold <<widget>> {
+    -index : int
+    +openHost() : void
+  }
+  class ChatPage <<widget>> {
+    -socket : Socket
+    +connectSocket() : void
+    +send(String) : void
+  }
+  class AuthSession <<static>> {
+    +{static} token : String?
+    +{static} userId : String?
+    +{static} authHeaders : Map<String,String>
+  }
+  class NotificationsState <<static>> {
+    +{static} unreadCount : ValueNotifier<int>
+    +{static} refresh() : Future<void>
+  }
+  class ThemeController <<static>> {
+    +{static} mode : ValueNotifier<ThemeMode>
+    +{static} toggle() : void
+  }
+  class ApiConfig <<config>> {
+    -{static} lanHost : String
+    +{static} apiRoot : String
+  }
+  class ActivityListing <<model>> {
+    +id : int
+    +title : String
+    +category : String
+    +startsAt : DateTime
+    +peopleJoined : int
+    +maxPeople : int
+    +hostRating : double?
+  }
+}
+
+package "Express service layer (backend/)" {
+  class AuthMiddleware <<middleware>> {
+    +verifyToken(req, res, next) : void
+  }
+  class AuthController <<module>> {
+    +registerUser(req, res)
+    +loginUser(req, res)
+    +forgotPassword(req, res)
+    +resetPassword(req, res)
+    -isCollegeEmail(email) : bool
+  }
+  class OtpController <<module>> {
+    +createAndSendOtp(email, purpose)
+    +verifyOtp(req, res)
+    +resendOtp(req, res)
+    -secondsSinceLastOtp(email, purpose)
+  }
+  class UsersController <<module>> {
+    +getMe(req, res)
+    +updateMe(req, res)
+    +updateEmergencyContact(req, res)
+    +uploadAvatar(req, res)
+  }
+  class ActivitiesController <<module>> {
+    +createActivity(req, res)
+    +listActivities(req, res)
+    +getActivity(req, res)
+    +requestJoin(req, res)
+    +cancelJoinRequest(req, res)
+    +listJoinRequests(req, res)
+    +acceptJoinRequest(req, res)
+    +declineJoinRequest(req, res)
+    +leaveActivity(req, res)
+    +deleteActivity(req, res)
+    +uploadActivityBanner(req, res)
+    +rateParticipant(req, res)
+    +findActiveActivityForUser(userId)
+    +getCompanionNames(actId, userId)
+  }
+  class ConversationsController <<module>> {
+    +listConversations(req, res)
+    +getMessages(req, res)
+    +startDirectConversation(req, res)
+    +isParticipant(convId, userId) : bool
+    +saveMessage(convId, userId, body)
+  }
+  class NotificationsController <<module>> {
+    +createNotification(userId, type, title, body, actId)
+    +listNotifications(req, res)
+    +markRead(req, res)
+    +markAllRead(req, res)
+  }
+  class SosController <<module>> {
+    +triggerSos(req, res)
+  }
+  class SocketGateway <<gateway>> {
+    +initSocket(httpServer) : Server
+    -onJoin(conversationId)
+    -onSend(conversationId, body)
+  }
+  class EmailService <<adapter>> {
+    +sendOtpEmail(to, otp)
+    +sendPasswordResetOtpEmail(to, otp)
+  }
+  class SmsService <<adapter>> {
+    +sendSosSms(phone, payload)
+  }
+  class ImageService <<adapter>> {
+    +convertHeicIfNeeded(path) : String
+  }
+  class DbPool <<pool>> {
+    +query(sql, params)
+    +getConnection() : Connection
+  }
+}
+
+package "Domain model" <<Frame>> {
+  class "User, Activity, JoinRequest,\nParticipation, Conversation, Message,\nRating, Notification, SosAlert,\nOtpVerification" as Domain
+}
+
+CampusCompanion *-- MainScaffold
+CampusCompanion ..> ThemeController
+MainScaffold *-- ChatPage
+MainScaffold ..> NotificationsState
+MainScaffold ..> ActivityListing
+ChatPage ..> AuthSession
+ChatPage ..> ApiConfig
+NotificationsState ..> ApiConfig
+NotificationsState ..> AuthSession
+
+AuthSession ..> AuthController : REST + Bearer JWT
+NotificationsState ..> NotificationsController : REST
+MainScaffold ..> ActivitiesController : REST
+MainScaffold ..> UsersController : REST
+ChatPage ..> SocketGateway : Socket.IO
+
+AuthController ..> OtpController
+AuthController ..> DbPool
+OtpController ..> EmailService
+OtpController ..> DbPool
+UsersController ..> ImageService
+UsersController ..> DbPool
+ActivitiesController ..> NotificationsController
+ActivitiesController ..> ImageService
+ActivitiesController ..> DbPool
+ConversationsController ..> DbPool
+NotificationsController ..> DbPool
+SosController ..> SmsService
+SosController ..> ActivitiesController
+SosController ..> DbPool
+SocketGateway ..> ConversationsController
+SocketGateway ..> AuthMiddleware : shares the JWT secret
+AuthMiddleware ..> ActivitiesController : guards
+AuthMiddleware ..> UsersController : guards
+AuthMiddleware ..> ConversationsController : guards
+AuthMiddleware ..> NotificationsController : guards
+AuthMiddleware ..> SosController : guards
+
+DbPool ..> Domain : reads / writes
+
+note right of AuthMiddleware
+  Mounted with router.use() on every
+  router except /api/auth, so route
+  handlers can assume req.userId.
+end note
+
+note bottom of MainScaffold
+  The fifteen remaining screens (Login,
+  LoginSuccess, Signup, OtpVerification,
+  ForgotPassword, Home, Discover, HostActivity,
+  ActivityDetail, Messages, Profile, EditProfile,
+  EmergencyContact, ActivityHistory, Notifications)
+  are views over the same endpoints and are
+  left out so the layering stays legible.
+end note
+
+@enduml

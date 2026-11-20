@@ -1,0 +1,97 @@
+@startuml activity_register
+!include skin.iuml
+skinparam ConditionEndStyle hline
+
+|#FFFFFF|Student|
+|#FAFAF8|Campus Companion app|
+|#F4F4F1|API server|
+|#EFEFEA|SMTP mail service|
+
+|Student|
+start
+:Tap "Create account" and fill in
+name, e-mail, password and gender;
+|Campus Companion app|
+:Refuse an address that does not end
+in @thapar.edu before anything is sent;
+:POST /api/auth/register;
+
+|API server|
+if (E-mail ends in @thapar.edu?) then (no)
+  |API server|
+  :400 - the same domain rule is
+  enforced again server-side, because
+  the client check can be bypassed;
+  |Campus Companion app|
+  :Show the error;
+  stop
+else (yes)
+endif
+
+|API server|
+if (A users row already exists?) then (yes)
+  |API server|
+  if (Is it verified?) then (yes)
+    |API server|
+    :409 - account already exists;
+    |Campus Companion app|
+    :Send the student to the login screen;
+    stop
+  else (no)
+    |API server|
+    :Reuse the unverified row rather than
+    stranding a half-finished sign-up;
+  endif
+else (no)
+  |API server|
+  :Hash the password with bcrypt
+  at ten salt rounds;
+  :INSERT INTO users with is_verified = FALSE;
+endif
+
+|API server|
+:Generate a six-digit code with
+crypto.randomInt;
+:Delete any earlier code for this e-mail
+and purpose = verify_email, so only one
+code is ever live;
+:INSERT INTO otp_verifications with
+expires_at = now + 10 minutes;
+|SMTP mail service|
+:Deliver the verification e-mail;
+
+|Student|
+:Read the code and enter it;
+|Campus Companion app|
+:POST /api/auth/verify-otp;
+|API server|
+:Load the newest code for this
+e-mail and purpose;
+if (Expired or incorrect?) then (yes)
+  |API server|
+  :400 - ask for a fresh code;
+  |Student|
+  :Request a resend;
+  |Campus Companion app|
+  :POST /api/auth/resend-otp;
+  |API server|
+  if (Under 60 s since the last code?) then (yes)
+    |API server|
+    :429 - resend cooldown;
+  else (no)
+    |API server|
+    :Issue and send a new code;
+  endif
+  detach
+else (no)
+  |API server|
+  :UPDATE users SET is_verified = TRUE;
+  :Delete the used code;
+endif
+
+|Campus Companion app|
+:Return to the login screen;
+|Student|
+stop
+
+@enduml

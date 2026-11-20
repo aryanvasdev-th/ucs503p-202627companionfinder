@@ -1,0 +1,58 @@
+@startuml architecture
+!include skin.iuml
+skinparam componentStyle rectangle
+skinparam nodesep 20
+skinparam ranksep 40
+
+actor "Student" as S
+
+node "Student's phone\n(Android / iOS, Flutter)" as Phone {
+  component "Screens\n(20 pages, Material 3,\nlight and dark theme)" as UI
+  component "AuthSession (Keychain)\nNotificationsState\nRealtimeService" as State
+  component "http client" as Http
+  component "socket_io_client" as WS
+}
+
+node "Application server\n(Node.js, Express 5)" as Server {
+  component "server.js\nrouters + CORS + request log" as Entry
+  component "authMiddleware\n(JWT + ban check)\nadmin.js" as Mw
+  component "Controllers\nauth, otp, users, activities,\nconversations, notifications,\nsos, admin" as Ctrl
+  component "socket.js\n(Socket.IO server,\nJWT handshake, rooms)" as Sock
+  component "Adapters\nemailService, smsService,\nimageService, idCardService" as Adapters
+  component "multer\n(5 MB images,\n10 MB ID photos)" as Multer
+  folder "uploads/\navatars, activity-banners" as Uploads
+}
+
+database "MySQL 8\ncampus_companion, 14 tables\n(mysql2 pool, 10 connections)" as DB
+cloud "ngrok tunnel\n(fixed HTTPS address)" as Ngrok
+
+cloud "SMTP\n(Nodemailer)" as SMTP
+cloud "Twilio\nSMS API" as Twilio
+
+S --> UI
+UI --> State
+UI --> Http
+UI --> WS
+
+Http --> Ngrok : "HTTPS REST\nBearer JWT"
+WS --> Ngrok : "WSS"
+Ngrok --> Entry
+Ngrok --> Sock
+Entry --> Mw
+Mw --> Ctrl
+Sock --> Ctrl : "isParticipant,\nsaveMessage"
+Ctrl --> Multer
+Multer --> Uploads
+Ctrl --> Adapters
+Ctrl --> DB : "SQL, transactions\nwith FOR UPDATE"
+Adapters --> SMTP : "OTP e-mail"
+Adapters --> Twilio : "SOS text"
+UI --> Uploads : "GET /uploads/...\nstatic images"
+
+note bottom of Uploads
+  Images are shrunk with sharp and
+  served from the laptop's own disk.
+  Object storage is still future work.
+end note
+
+@enduml

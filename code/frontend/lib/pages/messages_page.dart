@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -64,9 +65,8 @@ class _MessagesPageState extends State<MessagesPage> {
 
     return Scaffold(
       appBar: AppTopBar(
-        onBellTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const NotificationsPage()),
-        ),
+        onBellTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const NotificationsPage())),
       ),
       body: SafeArea(
         top: false,
@@ -129,8 +129,7 @@ class _MessagesPageState extends State<MessagesPage> {
         subtitle: noneAtAll
             ? 'Message someone from an activity\'s details page to start a conversation.'
             : switch (_filter) {
-                _MessagesFilter.dms =>
-                  'Message someone from an activity\'s details page to start one.',
+                _MessagesFilter.dms => 'Message someone from an activity\'s details page to start one.',
                 _MessagesFilter.groups =>
                   'Join or host an activity to get a group chat.',
                 _MessagesFilter.all => '',
@@ -175,7 +174,7 @@ class _MessagesPageState extends State<MessagesPage> {
                             true
                         ? CircleAvatar(
                             radius: 20,
-                            backgroundImage: NetworkImage(
+                            backgroundImage: CachedNetworkImageProvider(
                               '${ApiConfig.apiRoot}${conversation['activity_banner_url']}',
                             ),
                           )

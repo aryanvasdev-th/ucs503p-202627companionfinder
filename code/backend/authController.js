@@ -5,6 +5,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db'); // your mysql2/promise connection pool
+const { isAdminEmail } = require('./admin');
 const {
   createAndSendOtp,
   secondsSinceLastOtp,
@@ -93,7 +94,7 @@ async function loginUser(req, res) {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, email, password_hash, is_verified FROM users WHERE email = ?',
+      'SELECT id, email, password_hash, is_verified, is_banned, ban_reason FROM users WHERE email = ?',
       [email]
     );
 
@@ -107,6 +108,14 @@ async function loginUser(req, res) {
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+
+    if (user.is_banned) {
+      return res.status(403).json({
+        success: false,
+        banned: true,
+        message: `Your account has been suspended${user.ban_reason ? `: ${user.ban_reason}` : '.'}`,
+      });
     }
 
     if (!user.is_verified) {
@@ -129,7 +138,7 @@ async function loginUser(req, res) {
       success: true,
       message: 'Login successful',
       token,
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, isAdmin: isAdminEmail(user.email) },
     });
   } catch (err) {
     console.error('loginUser error:', err);

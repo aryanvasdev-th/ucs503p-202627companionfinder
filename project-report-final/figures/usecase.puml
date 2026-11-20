@@ -1,0 +1,110 @@
+@startuml usecase
+!include skin.iuml
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam nodesep 14
+skinparam ranksep 40
+
+actor "Student\n(verified @thapar.edu)" as Student
+actor Host as Host
+actor Participant as Guest
+actor "SMTP mail\nservice" as Mail
+actor "Twilio SMS\ngateway" as Twilio
+actor "Admin\n(listed in ADMIN_EMAILS)" as Admin
+Student <|-- Host
+Student <|-- Guest
+
+rectangle "Campus Companion" {
+
+  package "Account and profile" {
+    usecase "UC1 Register with\ncollege e-mail" as UC1
+    usecase "UC2 Verify e-mail\nwith OTP" as UC2
+    usecase "UC3 Log in" as UC3
+    usecase "UC4 Reset forgotten\npassword" as UC4
+    usecase "UC5 Edit profile\nand photo" as UC5
+    usecase "UC6 Set emergency\ncontact" as UC6
+    usecase "UC22 Verify Thapar\nID card" as UC22
+    usecase "UC23 Search people and\nview a public profile" as UC23
+  }
+
+  package "Communication" {
+    usecase "UC17 Exchange messages\nin real time" as UC17
+    usecase "UC18 Start a direct\nconversation" as UC18
+    usecase "UC19 Read notifications" as UC19
+    usecase "UC20 Open group\nconversation" as UC20
+  }
+
+  package "Activities" {
+    usecase "UC7 Browse and\nfilter activities" as UC7
+    usecase "UC8 Host an activity" as UC8
+    usecase "UC9 Add banner photo" as UC9
+    usecase "UC10 Request to join" as UC10
+    usecase "UC11 Withdraw request" as UC11
+    usecase "UC12 Review pending\nrequests" as UC12
+    usecase "UC13 Accept or decline\na request" as UC13
+    usecase "UC14 Leave an activity" as UC14
+    usecase "UC15 Cancel the activity" as UC15
+    usecase "UC16 Rate a companion" as UC16
+    usecase "UC24 Write a review\nwith tags" as UC24
+    usecase "UC25 Host an event" as UC25
+    usecase "UC26 Add an activity\ninside an event" as UC26
+    usecase "UC27 Sign up for an\nevent activity" as UC27
+    usecase "UC28 Start or join\na team" as UC28
+  }
+
+  package "Safety and moderation" {
+    usecase "UC21 Raise an SOS alert" as UC21
+    usecase "UC29 Ban or unban\na student" as UC29
+    usecase "UC30 Remove an activity\nor a review" as UC30
+    usecase "UC31 Give or remove\nthe verified tick" as UC31
+    usecase "UC32 Feature an activity\non Discover" as UC32
+  }
+}
+
+Student --> UC1
+Student --> UC3
+Student --> UC4
+Student --> UC5
+Student --> UC6
+Student --> UC7
+Student --> UC17
+Student --> UC18
+Student --> UC19
+Student --> UC21
+Student --> UC22
+Student --> UC23
+Student <|-- Admin
+Admin --> UC29
+Admin --> UC30
+Admin --> UC31
+Admin --> UC32
+
+Guest --> UC10
+Guest --> UC11
+Guest --> UC14
+Guest --> UC16
+Guest --> UC27
+Guest --> UC28
+
+Host --> UC8
+Host --> UC12
+Host --> UC13
+Host --> UC15
+Host --> UC25
+Host --> UC26
+
+UC1 ..> UC2 : <<include>>
+UC9 ..> UC8 : <<extend>>
+UC24 ..> UC16 : <<extend>>
+UC26 ..> UC25 : <<extend>>
+UC28 ..> UC27 : <<extend>>
+UC8 ..> UC20 : <<include>>
+UC13 ..> UC20 : <<include>>
+UC13 ..> UC19 : <<include>>
+
+UC2 --> Mail
+UC4 --> Mail
+UC21 --> Twilio
+
+@enduml

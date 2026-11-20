@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,9 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../services/auth_session.dart';
 import '../services/notifications_state.dart';
+import '../services/realtime_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/notification_popup.dart';
 import 'activity_detail_page.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -19,11 +22,20 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   List<Map<String, dynamic>>? _notifications;
   String? _error;
+  StreamSubscription<Map<String, dynamic>>? _liveSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // Keep the open list current when something new is pushed.
+    _liveSub = RealtimeService.notifications.listen((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _liveSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -36,11 +48,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
       if (!mounted) return;
       if (data['success'] == true) {
         setState(
-          () => _notifications =
-              (data['notifications'] as List).cast<Map<String, dynamic>>(),
+          () => _notifications = (data['notifications'] as List)
+              .cast<Map<String, dynamic>>(),
         );
-        NotificationsState.unreadCount.value =
-            _notifications!.where((n) => n['read'] != true).length;
+        NotificationsState.unreadCount.value = _notifications!
+            .where((n) => n['read'] != true)
+            .length;
       } else {
         setState(
           () => _error = data['message'] ?? 'Could not load notifications',
@@ -55,7 +68,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _markAllRead() async {
-    if (_notifications == null || _notifications!.every((n) => n['read'] == true)) {
+    if (_notifications == null ||
+        _notifications!.every((n) => n['read'] == true)) {
       return;
     }
     setState(() {
@@ -77,8 +91,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _openNotification(Map<String, dynamic> notification) async {
     if (notification['read'] != true) {
       setState(() => notification['read'] = true);
-      NotificationsState.unreadCount.value =
-          (_notifications ?? []).where((n) => n['read'] != true).length;
+      NotificationsState.unreadCount.value = (_notifications ?? [])
+          .where((n) => n['read'] != true)
+          .length;
       try {
         await http.patch(
           Uri.parse(
@@ -101,18 +116,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  IconData _iconFor(String type) {
-    switch (type) {
-      case 'activity_joined':
-        return Icons.person_add_alt_1_rounded;
-      case 'activity_cancelled':
-        return Icons.event_busy_rounded;
-      case 'rating_received':
-        return Icons.star_rounded;
-      default:
-        return Icons.notifications_rounded;
-    }
-  }
+  IconData _iconFor(String type) =>
+      styleForNotificationType(type, Theme.of(context), context.extras).icon;
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -161,7 +166,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.notifications_none_rounded, size: 48, color: extras.text3),
+            Icon(
+              Icons.notifications_none_rounded,
+              size: 48,
+              color: extras.text3,
+            ),
             const SizedBox(height: 16),
             Text(
               'No notifications yet',
@@ -275,7 +284,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Center(child: Padding(padding: const EdgeInsets.all(32), child: child)),
+          child: Center(
+            child: Padding(padding: const EdgeInsets.all(32), child: child),
+          ),
         ),
       ),
     );

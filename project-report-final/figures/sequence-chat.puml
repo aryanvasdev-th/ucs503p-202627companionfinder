@@ -1,0 +1,35 @@
+@startuml sequence_chat
+!include skin.iuml
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+
+participant "Sender's app\n(RealtimeService)" as A
+box "Application server" #FAFAF8
+  participant "socket.js" as SK
+  participant "conversationsController" as CC
+end box
+database "MySQL" as DB
+participant "Other members'\napps" as B
+
+A -> SK : connect, handshake auth {token}
+SK -> SK : verify JWT
+SK -> DB : is_banned?
+SK --> A : connected, joined room user:<id>
+A -> SK : conversation:join(id)
+SK -> CC : isParticipant(id, user)
+CC -> DB : SELECT conversation_participants
+SK --> A : ack success, joined room conversation:<id>
+
+A -> SK : message:send {conversationId, body}
+SK -> CC : isParticipant (checked again)
+SK -> CC : saveMessage
+CC -> DB : INSERT message
+DB --> CC : row with id, created_at
+SK -> B : message:new (room broadcast)
+SK --> A : ack success + saved message
+note right of SK
+  The message is written before it is
+  broadcast, so what everyone sees is
+  exactly what is in the database.
+end note
+@enduml

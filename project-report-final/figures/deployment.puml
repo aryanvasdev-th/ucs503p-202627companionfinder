@@ -1,0 +1,43 @@
+@startuml deployment
+!include skin.iuml
+skinparam nodesep 30
+skinparam ranksep 40
+skinparam node {
+  BackgroundColor #FCFCFB
+  BorderColor #4A4A4A
+}
+
+node "Student's phone\n(Android / iOS)" as Phone {
+  artifact "Campus Companion app\n(built with --dart-define=API_URL)" as App
+}
+
+cloud "ngrok edge\n(fixed *.ngrok-free.dev domain, HTTPS)" as Ngrok
+
+node "Team laptop (macOS)" as Laptop {
+  node "scripts/start-demo.sh" as Script {
+    artifact "ngrok agent" as Agent
+    node "Node.js 24 process" as NodeP {
+      artifact "server.js\n(Express + Socket.IO, :5001)" as Srv
+    }
+  }
+  database "MySQL 8\ncampus_companion" as DB
+  folder "backend/uploads\n(shrunk WebP photos)" as Up
+}
+
+cloud "Gmail SMTP" as SMTP
+cloud "Twilio SMS" as TW
+
+App --> Ngrok : HTTPS / WSS
+Ngrok --> Agent : tunnel
+Agent --> Srv : http://localhost:5001
+Srv --> DB : mysql2 pool
+Srv --> Up
+Srv --> SMTP : one-time codes
+Srv --> TW : SOS text
+
+note bottom of Script
+  Keeps the Mac awake (caffeinate) and
+  restarts the server or the tunnel if
+  either stops, e.g. when the wifi changes.
+end note
+@enduml

@@ -95,13 +95,21 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _connectSocket() {
+    // forceNew: socket_io_client otherwise hands back the app-wide
+    // notifications socket (same server URL), which is already connected —
+    // so onConnect never fired, the chat never joined its room and new
+    // messages only appeared after reopening. Disposing it on leaving the
+    // chat also killed live notifications.
     _socket = socket_io.io(
       ApiConfig.apiRoot,
-      socket_io.OptionBuilder().setTransports(['websocket']).setAuth({
-        'token': AuthSession.token,
-      }).build(),
+      socket_io.OptionBuilder()
+          .setTransports(['websocket'])
+          .enableForceNew()
+          .setAuth({'token': AuthSession.token})
+          .build(),
     );
 
+    // Join on every (re)connect, e.g. after the network drops and comes back.
     _socket!.onConnect((_) {
       _socket!.emitWithAck(
         'conversation:join',

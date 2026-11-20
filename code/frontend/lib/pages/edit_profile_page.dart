@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -234,7 +235,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
             TextField(
               controller: _bioController,
               maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Tell people a bit about yourself'),
+              decoration: const InputDecoration(
+                hintText: 'Tell people a bit about yourself',
+              ),
             ),
             const SizedBox(height: 20),
             Text(
@@ -284,7 +287,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
       return CircleAvatar(
         radius: radius,
-        backgroundImage: NetworkImage('${ApiConfig.apiRoot}$_avatarUrl'),
+        backgroundImage: CachedNetworkImageProvider(
+          '${ApiConfig.apiRoot}$_avatarUrl',
+        ),
       );
     }
     final name = _nameController.text.trim();

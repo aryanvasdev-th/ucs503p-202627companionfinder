@@ -1,0 +1,52 @@
+@startuml sequence_idverify
+!include skin.iuml
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+
+actor "Student" as S
+participant "VerifyIdPage" as P
+box "Application server" #FAFAF8
+  participant "multer\n(2 files, 10 MB)" as M
+  participant "usersController\n.verifyId" as UC
+  participant "idCardService" as ID
+  participant "tesseract.js\n(OCR)" as OCR
+  participant "zxing-wasm\n(barcode)" as BC
+end box
+database "MySQL" as DB
+
+S -> P : photograph front and back
+P -> M : POST /api/users/me/verify-id\nidFront, idBack (multipart)
+M -> UC : two buffers, held in memory only
+UC -> DB : already verified?
+UC -> ID : verifyThaparCard(front, back, email)
+activate ID
+ID -> ID : parse email\n(initial, surname, program, year)
+ID -> ID : normalise (HEIC to JPEG, resize, greyscale)
+par
+  ID -> OCR : read front text
+  OCR --> ID : text
+else
+  ID -> BC : read Code 128 on back
+  BC --> ID : barcode digits
+end
+ID -> ID : text says THAPAR and IDENTITY/LIBRARY?
+ID -> ID : name with same initial + surname\n(one OCR slip allowed)?
+ID -> ID : barcode roll = a roll printed on front?
+alt every check passes
+  ID --> UC : HMAC(roll), checks
+  deactivate ID
+  UC -> DB : UPDATE users: verified,\nid_roll_hash (unique)
+  alt hash already used by another account
+    DB --> UC : ER_DUP_ENTRY
+    UC --> P : 409 CARD_ALREADY_USED
+  else
+    UC --> P : 200 verified
+    P -> S : red tick on profile
+  end
+else a check fails
+  ID --> UC : IdCardError(code, message)
+  UC -> DB : status = failed
+  UC --> P : 422 + what to retake
+end
+note over M, UC : The photos are never written to disk.
+@enduml

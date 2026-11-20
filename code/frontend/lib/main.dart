@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'login_page.dart';
+import 'startup_gate.dart';
+import 'services/app_navigator.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
+import 'widgets/notification_popup.dart';
 
 void main() {
   runApp(const CampusCompanion());
@@ -18,11 +20,14 @@ class CampusCompanion extends StatelessWidget {
       builder: (context, mode, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
+          navigatorKey: appNavigatorKey,
+          builder: (context, child) =>
+              NotificationPopupHost(child: child ?? const SizedBox.shrink()),
           title: 'Companion',
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: mode,
-          home: const LoginPage(),
+          home: const StartupGate(),
         );
       },
     );

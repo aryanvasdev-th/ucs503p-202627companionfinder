@@ -1,0 +1,95 @@
+@startuml activity_signin
+!include skin.iuml
+skinparam ConditionEndStyle hline
+
+|#FFFFFF|Student|
+|#FAFAF8|Campus Companion app|
+|#F4F4F1|API server|
+|#EFEFEA|SMTP mail service|
+
+|Student|
+start
+if (Remembers the password?) then (no)
+  |Student|
+  :Tap "Forgot password" and
+  enter the e-mail;
+  |Campus Companion app|
+  :POST /api/auth/forgot-password;
+  |API server|
+  :Always answer "if an account exists,
+  a code has been sent", so the endpoint
+  cannot be used to test which addresses
+  are registered;
+  if (Verified account, and the 60 s
+  cooldown has passed?) then (yes)
+    |API server|
+    :Issue a code with
+    purpose = reset_password;
+    |SMTP mail service|
+    :Deliver the reset e-mail;
+  else (no)
+    |API server|
+    :Send nothing, answer the same way;
+  endif
+  |Student|
+  :Enter the code and a new password;
+  |Campus Companion app|
+  :POST /api/auth/reset-password;
+  |API server|
+  if (Code valid, unexpired, and the new
+  password is at least 8 characters?) then (no)
+    |API server|
+    :400 with the specific reason;
+    |Campus Companion app|
+    :Keep the form open;
+    stop
+  else (yes)
+  endif
+  |API server|
+  :Re-hash the new password, update the row
+  and delete every reset code for this e-mail;
+  |Campus Companion app|
+  :Return to the login screen;
+else (yes)
+endif
+
+|Student|
+:Enter e-mail and password;
+|Campus Companion app|
+:POST /api/auth/login;
+|API server|
+if (E-mail known and the bcrypt
+comparison succeeds?) then (no)
+  |API server|
+  :401 - "Invalid email or password".
+  The wording is identical whether the
+  address exists or the password is wrong;
+  |Campus Companion app|
+  :Show the error;
+  stop
+else (yes)
+endif
+if (Is the account verified?) then (no)
+  |API server|
+  :Send a fresh verification code and
+  answer 403 with requiresVerification,
+  so a stalled sign-up can be finished
+  from the login screen;
+  |Campus Companion app|
+  :Open the OTP screen;
+  stop
+else (yes)
+endif
+|API server|
+:Sign a JWT carrying userId and e-mail,
+valid for seven days;
+
+|Campus Companion app|
+:Hold the token in AuthSession and save it in
+secure storage (Keychain / encrypted storage),
+so the student stays logged in after a restart;
+:Open MainScaffold on the Discover tab;
+|Student|
+stop
+
+@enduml

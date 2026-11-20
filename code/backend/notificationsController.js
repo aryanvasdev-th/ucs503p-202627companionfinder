@@ -1,14 +1,24 @@
 // notificationsController.js
 const pool = require('./db');
+const { emitToUser } = require('./socket');
 
 // Called by other controllers when something notification-worthy happens.
 // Best-effort — callers should not let a failure here break the main flow.
 async function createNotification(userId, type, title, body, activityId = null) {
   try {
-    await pool.query(
+    const [result] = await pool.query(
       'INSERT INTO notifications (user_id, type, title, body, activity_id) VALUES (?, ?, ?, ?, ?)',
       [userId, type, title, body || null, activityId]
     );
+    emitToUser(userId, 'notification:new', {
+      id: result.insertId,
+      type,
+      title,
+      body: body || null,
+      activityId,
+      read: false,
+      createdAt: new Date().toISOString(),
+    });
   } catch (err) {
     console.error('createNotification error:', err);
   }

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../api_config.dart';
@@ -5,6 +6,8 @@ import '../models/activity.dart';
 import '../theme/app_theme.dart';
 
 /// Discover-tab card: image, rating badge, title, capacity badge, time, host row.
+/// Without a host-uploaded banner the image area is dropped entirely, so the
+/// card stays compact instead of showing a big empty gradient.
 class ActivityCard extends StatelessWidget {
   final ActivityListing listing;
   final VoidCallback? onJoin;
@@ -34,6 +37,29 @@ class ActivityCard extends StatelessWidget {
         : listing.requestDeclined
         ? 'Declined'
         : (isFull ? 'Full' : 'Request');
+
+    final hasBanner =
+        listing.bannerUrl != null && listing.bannerUrl!.isNotEmpty;
+
+    Widget ratingPill(Color background) => _Pill(
+      color: background,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (listing.rating != null) ...[
+            const Icon(Icons.star_rounded, size: 15, color: Color(0xFFF0A93B)),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            listing.rating?.toStringAsFixed(1) ?? 'New',
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
 
     Widget gradientFallback() => Container(
       height: 150,
@@ -68,54 +94,54 @@ class ActivityCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                listing.bannerUrl != null && listing.bannerUrl!.isNotEmpty
-                    ? Image.network(
-                        '${ApiConfig.apiRoot}${listing.bannerUrl}',
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            gradientFallback(),
-                      )
-                    : gradientFallback(),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: _Pill(
-                    color: theme.brightness == Brightness.dark
-                        ? Colors.black.withValues(alpha: 0.55)
-                        : Colors.white.withValues(alpha: 0.92),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (listing.rating != null) ...[
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 15,
-                            color: Color(0xFFF0A93B),
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                        Text(
-                          listing.rating?.toStringAsFixed(1) ?? 'New',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
+            if (hasBanner)
+              Stack(
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: '${ApiConfig.apiRoot}${listing.bannerUrl}',
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => gradientFallback(),
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: ratingPill(
+                      theme.brightness == Brightness.dark
+                          ? Colors.black.withValues(alpha: 0.55)
+                          : Colors.white.withValues(alpha: 0.92),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (listing.isFeatured)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.push_pin_rounded,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Featured',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -127,18 +153,21 @@ class ActivityCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      _Pill(
-                        color: isFull ? extras.field : extras.indigoTint,
-                        child: Text(
-                          listing.capacityLabel,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: isFull ? extras.text3 : extras.indigo,
+                      // A "1/50000 people" counter means nothing on a fest.
+                      if (!listing.isEvent) ...[
+                        const SizedBox(width: 10),
+                        _Pill(
+                          color: isFull ? extras.field : extras.indigoTint,
+                          child: Text(
+                            listing.capacityLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isFull ? extras.text3 : extras.indigo,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -157,8 +186,36 @@ class ActivityCard extends StatelessWidget {
                           color: extras.text2,
                         ),
                       ),
+                      if (!hasBanner) ...[
+                        const Spacer(),
+                        ratingPill(extras.field),
+                      ],
                     ],
                   ),
+                  if (listing.isEvent) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.celebration_rounded,
+                          size: 16,
+                          color: extras.indigo,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          listing.eventActivityCount == 0
+                              ? 'Event'
+                              : 'Event · ${listing.eventActivityCount} '
+                                    '${listing.eventActivityCount == 1 ? 'activity' : 'activities'} inside',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: extras.indigo,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Divider(height: 1, color: theme.dividerColor),
                   const SizedBox(height: 12),

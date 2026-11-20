@@ -2,25 +2,45 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  /// Your Mac's LAN IP — required for a physical phone on the same wifi
-  /// (localhost on-device means the phone itself, not your Mac). Update this
-  /// if your Mac's IP changes (check with `ipconfig getifaddr en0`).
-  static const String _lanHost = '172.16.212.56';
+  /// The laptop running the backend, passed in at build time so nobody has
+  /// to edit this file when its IP changes (it's handed out by the campus
+  /// wifi and moves around):
+  ///
+  ///   flutter run --dart-define=API_HOST=$(ipconfig getifaddr en0)
+  ///   flutter build apk --dart-define=API_HOST=172.16.x.x
+  ///
+  /// When set, every platform uses it — phones, simulators and emulators.
+  static const String _hostOverride = String.fromEnvironment('API_HOST');
 
-  /// Picks the right host per platform automatically:
-  /// - Web -> runs on your Mac, so localhost reaches it directly.
-  /// - Android emulator -> 10.0.2.2 is its special alias for the host machine.
-  ///   (Only used in debug mode — a release build is always a real device,
-  ///   e.g. a tester's phone, which needs the LAN IP like iOS does below.)
-  /// - Everything else (iOS Simulator, physical iPhone, physical Android) ->
-  ///   your Mac's LAN IP, since they're real network clients on the same wifi.
-  /// Once deployed, swap for your hosted URL.
+  /// Full server address instead of a LAN host, e.g. a tunnel or hosted
+  /// backend: --dart-define=API_URL=https://example.trycloudflare.com
+  /// Needed off-LAN: campus wifi isolates devices from each other, so
+  /// phones can't reach the laptop's LAN IP directly. Takes priority.
+  static const String _urlOverride = String.fromEnvironment('API_URL');
+
+  /// Fallback when no API_HOST is given. Update this if you'd rather not
+  /// pass --dart-define (check with `ipconfig getifaddr en0`).
+  static const String _lanHost = '172.16.212.95';
+
+  static const int _port = 5001;
+
+  /// Without an override:
+  /// - Web -> runs on the laptop, so localhost reaches it directly.
+  /// - Android emulator (debug) -> 10.0.2.2 is its alias for the host machine.
+  ///   A physical Android phone in debug mode needs API_HOST instead.
+  /// - Everything else (iOS Simulator, iPhone, release Android) -> _lanHost.
   static String get apiRoot {
-    if (kIsWeb) return 'http://localhost:5001';
-    if (!kReleaseMode && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5001';
+    if (_urlOverride.isNotEmpty) {
+      return _urlOverride.endsWith('/')
+          ? _urlOverride.substring(0, _urlOverride.length - 1)
+          : _urlOverride;
     }
-    return 'http://$_lanHost:5001';
+    if (_hostOverride.isNotEmpty) return 'http://$_hostOverride:$_port';
+    if (kIsWeb) return 'http://localhost:$_port';
+    if (!kReleaseMode && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:$_port';
+    }
+    return 'http://$_lanHost:$_port';
   }
 
   static String get baseUrl => '$apiRoot/api/auth';

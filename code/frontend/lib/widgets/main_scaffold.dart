@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../pages/discover_page.dart';
 import '../home_page.dart';
-import '../pages/host_activity_page.dart';
 import '../pages/messages_page.dart';
 import '../pages/profile_page.dart';
 import '../services/notifications_state.dart';
+import '../services/realtime_service.dart';
 import '../theme/app_theme.dart';
+import 'host_choice_sheet.dart';
 
-/// Owns the 5-tab bottom nav (Home / Discover / Host / Messages / Profile).
-/// Host is a raised center button that pushes HostActivityPage rather than
-/// a persistent tab, matching the design (it opens as its own flow, not a
-/// screen you idle on).
+/// Owns the 5-item bottom nav (Home / Discover / Host / Messages / Profile).
+/// Host is the same size as the tabs but opens the host chooser as its own
+/// flow instead of becoming a screen you idle on.
 class MainScaffold extends StatefulWidget {
   final int initialIndex;
   const MainScaffold({super.key, this.initialIndex = 1});
@@ -27,6 +27,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   void initState() {
     super.initState();
     NotificationsState.refresh();
+    RealtimeService.connect();
   }
 
   List<Widget> get _tabs => [
@@ -36,10 +37,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     const ProfilePage(),
   ];
 
-  void _openHost() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const HostActivityPage()));
-  }
+  void _openHost() => showHostChoice(context);
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +94,16 @@ class _BottomNav extends StatelessWidget {
               selected: index == 1,
               onTap: () => onSelect(1),
             ),
-            _HostButton(onTap: onHostTap),
+            // Same size as the other tabs: the old raised red button got
+            // pressed by accident. It opens the host chooser rather than
+            // becoming the selected tab; the red icon keeps it findable.
+            _NavItem(
+              icon: Icons.add_circle_outline_rounded,
+              label: 'Host',
+              selected: false,
+              accent: true,
+              onTap: onHostTap,
+            ),
             _NavItem(
               icon: Icons.chat_bubble_rounded,
               label: 'Messages',
@@ -122,11 +129,15 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  /// Brand-red icon for the Host action when it isn't selected.
+  final bool accent;
+
   const _NavItem({
     required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.accent = false,
   });
 
   @override
@@ -152,49 +163,29 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 21, color: selected ? Colors.white : extras.text3),
+            Icon(
+              icon,
+              size: 21,
+              color: selected
+                  ? Colors.white
+                  : accent
+                  ? theme.colorScheme.primary
+                  : extras.text3,
+            ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : extras.text3,
+                color: selected
+                    ? Colors.white
+                    : accent
+                    ? theme.colorScheme.primary
+                    : extras.text3,
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HostButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _HostButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Transform.translate(
-        offset: const Offset(0, -20),
-        child: Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
         ),
       ),
     );

@@ -1,0 +1,90 @@
+@startuml activity_respond_rate
+!include skin.iuml
+skinparam ConditionEndStyle hline
+
+|#FFFFFF|Host|
+|#F4F4F1|API server|
+|#FAFAF8|Participant|
+
+|Host|
+start
+:Open the pending requests
+for the activity;
+:GET /api/activities/{id}/requests;
+
+|API server|
+:Refuse anyone who is not the host, then return
+each requester's name, gender and average rating;
+
+|Host|
+:Accept or decline;
+:POST .../requests/{requestId}/accept or .../decline;
+
+|API server|
+:BEGIN TRANSACTION;
+:SELECT the activity and the request FOR UPDATE, so
+two taps arriving together cannot both pass the
+capacity check;
+if (Caller is the host and the
+request is still pending?) then (no)
+  |API server|
+  :403 or 400, then roll back;
+  detach
+else (yes)
+endif
+if (Accepted?) then (yes)
+  |API server|
+  if (Still room under max_people?) then (no)
+    |API server|
+    :409 - it filled up while
+    the request was waiting;
+    detach
+  else (yes)
+  endif
+  :Add the student to activity_participants and to
+  conversation_participants, which is what puts
+  them in the group chat;
+else (no)
+endif
+:Update the request status and responded_at;
+:COMMIT, then notify the requester either way;
+
+|Participant|
+:Open the group chat from Messages and connect
+the Socket.IO client with the JWT in the handshake;
+|API server|
+:Verify the token, then check conversation_participants
+before letting the socket join the room;
+|Participant|
+:Send a message;
+|API server|
+:Persist it, then broadcast message:new to the room;
+|Host|
+:Receive it without polling;
+
+|Participant|
+:Meet, take part in the activity,
+then open it again to leave a rating;
+|API server|
+if (Now is past starts_at + duration_minutes?) then (no)
+  |API server|
+  :400 - rating stays closed
+  until the activity is over;
+  detach
+else (yes)
+endif
+if (Rater and rated both took part,
+and are not the same person?) then (no)
+  |API server|
+  :400 or 403;
+  detach
+else (yes)
+endif
+:Upsert the score, one rating per
+(activity, rater, rated) triple;
+:Notify the rated student and fold the score into
+the average shown on their future listings;
+|Participant|
+stop
+
+@enduml

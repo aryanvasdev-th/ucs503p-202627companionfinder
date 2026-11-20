@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../api_config.dart';
@@ -5,6 +6,7 @@ import '../models/activity.dart';
 import '../theme/app_theme.dart';
 
 /// Home-tab card: image with time + RSVP badge, title, host row, View Details.
+/// The image block only appears when the host uploaded a banner.
 class EventCard extends StatelessWidget {
   final UpcomingEvent event;
   final VoidCallback? onViewDetails;
@@ -16,6 +18,49 @@ class EventCard extends StatelessWidget {
     final theme = Theme.of(context);
     final extras = context.extras;
     final isConfirmed = event.rsvp == EventRsvp.confirmed;
+
+    // No banner from the host: skip the image block so the card stays
+    // compact, and show the time and RSVP pills in a slim row instead.
+    final hasBanner = event.bannerUrl != null && event.bannerUrl!.isNotEmpty;
+
+    Widget timePill(Color background, Color foreground) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.access_time_rounded, size: 13, color: foreground),
+          const SizedBox(width: 5),
+          Text(
+            event.timeLabel,
+            style: TextStyle(
+              color: foreground,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Widget rsvpPill() => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isConfirmed ? extras.greenTint : extras.brandTint,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        isConfirmed ? 'Confirmed' : 'Going',
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          color: isConfirmed ? extras.green : extras.brandInk,
+        ),
+      ),
+    );
 
     Widget gradientFallback() => Container(
       height: 148,
@@ -47,75 +92,38 @@ class EventCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              event.bannerUrl != null && event.bannerUrl!.isNotEmpty
-                  ? Image.network(
-                      '${ApiConfig.apiRoot}${event.bannerUrl}',
-                      height: 148,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          gradientFallback(),
-                    )
-                  : gradientFallback(),
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.access_time_rounded,
-                        size: 13,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        event.timeLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+          if (hasBanner)
+            Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: '${ApiConfig.apiRoot}${event.bannerUrl}',
+                  height: 148,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) => gradientFallback(),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: timePill(
+                    Colors.black.withValues(alpha: 0.5),
+                    Colors.white,
                   ),
                 ),
+                Positioned(top: 12, right: 12, child: rsvpPill()),
+              ],
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                children: [
+                  timePill(extras.field, extras.text2),
+                  const Spacer(),
+                  rsvpPill(),
+                ],
               ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isConfirmed ? extras.greenTint : extras.brandTint,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    isConfirmed ? 'Confirmed' : 'Going',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: isConfirmed ? extras.green : extras.brandInk,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -132,29 +140,31 @@ class EventCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: event.status == ActivityStatus.full
-                            ? extras.field
-                            : extras.indigoTint,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        event.capacityLabel,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                    if (!event.isEvent) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
                           color: event.status == ActivityStatus.full
-                              ? extras.text3
-                              : extras.indigo,
+                              ? extras.field
+                              : extras.indigoTint,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          event.capacityLabel,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: event.status == ActivityStatus.full
+                                ? extras.text3
+                                : extras.indigo,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 12),

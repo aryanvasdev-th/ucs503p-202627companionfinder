@@ -5,7 +5,15 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { verifyToken } = require('./authMiddleware');
-const { getMe, updateMe, updateEmergencyContact, uploadAvatar } = require('./usersController');
+const {
+  getMe,
+  updateMe,
+  updateEmergencyContact,
+  uploadAvatar,
+  getPublicProfile,
+  searchUsers,
+  verifyId,
+} = require('./usersController');
 
 router.use(verifyToken);
 
@@ -47,9 +55,36 @@ function handleAvatarUpload(req, res, next) {
   });
 }
 
+// ID photos stay in memory only (never touch the public /uploads folder).
+const idVerificationUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 2 },
+  fileFilter: (req, file, cb) => {
+    if (!EXT_BY_MIMETYPE[file.mimetype]) {
+      return cb(new Error('Only JPEG, PNG, WEBP, or HEIC images are allowed'));
+    }
+    cb(null, true);
+  },
+});
+
+function handleIdVerificationUpload(req, res, next) {
+  idVerificationUpload.fields([
+    { name: 'idFront', maxCount: 1 },
+    { name: 'idBack', maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    }
+    next();
+  });
+}
+
 router.get('/me', getMe);
 router.patch('/me', updateMe);
 router.patch('/me/emergency-contact', updateEmergencyContact);
 router.post('/me/avatar', handleAvatarUpload, uploadAvatar);
+router.post('/me/verify-id', handleIdVerificationUpload, verifyId);
+router.get('/search', searchUsers);
+router.get('/:id', getPublicProfile);
 
 module.exports = router;

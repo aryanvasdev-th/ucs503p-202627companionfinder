@@ -1,0 +1,29 @@
+@startuml state_activity
+!include skin.iuml
+skinparam state {
+  BackgroundColor #F6F6F4
+  BorderColor #4A4A4A
+  FontSize 12
+}
+
+[*] --> Open : host creates\n(host enrolled, chat opened)
+state "Upcoming" as Up {
+  state Open
+  state Full
+  Open --> Full : accepted = max_people
+  Full --> Open : someone leaves
+}
+Up --> InProgress : starts_at reached
+InProgress --> Finished : starts_at + duration
+Finished : ratings and reviews\nnow accepted
+Finished --> [*]
+Up --> Deleted : host cancels or\nadmin removes
+InProgress --> Deleted : admin removes
+Deleted : participants notified,\nchat kept, rows tidied
+Deleted --> [*]
+note right of Up
+  Featured is a flag an admin sets,
+  not a state: it only changes the
+  order on Discover.
+end note
+@enduml

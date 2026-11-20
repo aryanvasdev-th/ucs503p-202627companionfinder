@@ -1,0 +1,62 @@
+@startuml component
+!include skin.iuml
+skinparam componentStyle uml2
+skinparam nodesep 18
+skinparam ranksep 36
+skinparam component {
+  BackgroundColor #F6F6F4
+  BorderColor #4A4A4A
+}
+
+package "Flutter app (frontend/lib)" {
+  component "Screens\n(20 pages)" as Screens
+  component "Widgets\n(cards, sheets,\nnotification popup)" as Widgets
+  component "AuthSession\n(saved login)" as Auth
+  component "RealtimeService" as RT
+  component "ApiConfig\n(API_URL / API_HOST)" as Cfg
+}
+
+package "Node server (backend)" {
+  portin "REST /api" as REST
+  portin "Socket.IO" as WSP
+  component "Routers\n(auth, users, activities,\nconversations, notifications,\nsos, admin)" as Routers
+  component "authMiddleware\n(JWT + ban check)" as MW
+  component "admin.js\n(requireAdmin)" as Admin
+  component "Controllers" as Ctrls
+  component "socket.js" as Sock
+  component "migrate.js" as Mig
+  component "idCardService" as IDS
+  component "imageService\n(sharp, heic-convert)" as Img
+  component "emailService" as Mail
+  component "smsService" as Sms
+}
+
+database "MySQL\n14 tables" as DB
+component "tesseract.js +\nzxing-wasm" as OCR
+cloud "Gmail SMTP" as SMTP
+cloud "Twilio" as TW
+
+Screens --> Widgets
+Screens --> Auth
+Screens --> RT
+Auth --> Cfg
+Screens ..> REST : http + Bearer JWT
+RT ..> WSP : WebSocket
+
+REST --> Routers
+WSP --> Sock
+Routers --> MW
+Routers --> Admin
+MW --> Ctrls
+Admin --> Ctrls
+Sock --> Ctrls
+Ctrls --> IDS
+Ctrls --> Img
+Ctrls --> Mail
+Ctrls --> Sms
+IDS --> OCR
+Ctrls --> DB
+Mig --> DB
+Mail --> SMTP
+Sms --> TW
+@enduml

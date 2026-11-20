@@ -19,6 +19,12 @@ const {
   uploadActivityBanner,
   rateParticipant,
   myActivities,
+  createEventActivity,
+  joinEventActivity,
+  leaveEventActivity,
+  deleteEventActivity,
+  createSquad,
+  joinSquad,
 } = require('./activitiesController');
 
 router.use(verifyToken);
@@ -74,5 +80,14 @@ router.delete('/:id/join', leaveActivity);
 router.delete('/:id', deleteActivity);
 router.post('/:id/banner', handleBannerUpload, uploadActivityBanner);
 router.post('/:id/rate', rateParticipant);
+// Activities inside an event (host adds them; attendees sign up for several).
+router.post('/:id/event-activities', createEventActivity);
+router.post('/:id/event-activities/:itemId/join', joinEventActivity);
+router.delete('/:id/event-activities/:itemId/join', leaveEventActivity);
+router.delete('/:id/event-activities/:itemId', deleteEventActivity);
+// Teams inside a team activity (start one, or join one with space). Leaving
+// the activity (DELETE .../join above) also takes you out of your team.
+router.post('/:id/event-activities/:itemId/teams', createSquad);
+router.post('/:id/event-activities/:itemId/teams/:squadId/join', joinSquad);
 
 module.exports = router;
